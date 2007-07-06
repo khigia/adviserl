@@ -1,1 +1,0 @@
-#summary Adviserl recommender system in Erlang/OTP
