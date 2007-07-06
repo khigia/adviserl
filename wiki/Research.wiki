@@ -1,3 +1,4 @@
+#summary Links about CF/recommender system projects, articles, sites
 Personal pages
  * James Thornton: http://jamesthornton.com/cf/
  * Lyle Ungar: http://www.cis.upenn.edu/~ungar/CF/ 
