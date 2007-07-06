@@ -1,3 +1,4 @@
+#summary Links about the Slope-One algorithms
  * Slope One on Daniel Lemire page: http://www.daniel-lemire.com/fr/abstracts/SDM2005.html
    * Implementation in standalone Java class (by the authors): http://www.daniel-lemire.com/fr/documents/publications/SlopeOne.java
    * Implementation using PHP/MySQL (by the authors): http://www.daniel-lemire.com/fr/abstracts/TRD01.html
