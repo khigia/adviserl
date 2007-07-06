@@ -1,0 +1,16 @@
+Personal pages
+ * James Thornton: http://jamesthornton.com/cf/
+ * Lyle Ungar: http://www.cis.upenn.edu/~ungar/CF/ 
+
+Projects
+ * Melvyl: http://www.dlib.org/dlib/december06/whitney/12whitney.html
+
+References:
+ * Google News Personalization: scalable online collaborative filtering, http://www2007.org/paper570.php
+   * Discussion about this paper: http://glinden.blogspot.com/2007/05/google-news-personalization-paper.html
+ * Toward the Next Generation of Recommender Systems: A Survey of the  State-of-the-Art and Possible Extensions
+
+Links
+ * Google scholar search "recommender system": http://scholar.google.com/scholar?q=recommender+system&hl=en&lr=&safe=active&scoring=r&as_ylo=2002&start=0&sa=N
+ * Google scholar search "collaborative filtering": http://scholar.google.com/scholar?hl=en&lr=&q=%22collaborative+filtering%22&btnG=Search
+ 

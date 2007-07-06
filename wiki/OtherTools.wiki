@@ -1,0 +1,2 @@
+ * Taste (CF for Java): http://taste.sourceforge.net/
+ * Voogoo: http://www.vogoo-api.com/
