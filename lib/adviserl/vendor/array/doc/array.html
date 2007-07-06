@@ -1,0 +1,222 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Module array</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"/><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module array</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Functional, extendable arrays.
+<p>Copyright © 2006 Richard Carlsson, Dan Gudmundsson</p>
+
+<p><b>Version:</b> 0.9</p>
+<p><b>Authors:</b> Richard Carlsson (<a href="mailto:richardc@it.uu.se"><tt>richardc@it.uu.se</tt></a>), Dan Gudmundsson (<a href="mailto:dgud@erix.ericsson.se"><tt>dgud@erix.ericsson.se</tt></a>).</p>
+
+<h2><a name="description">Description</a></h2>Functional, extendable arrays.
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-array">array()</a></h3>
+<p><b>abstract datatype</b>: <tt>array()</tt></p>
+<p>A functional, extendible array. The representation is
+  not documented and is subject to change without notice. Note that
+  arrays cannot be directly compared for equality.</p>
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#default-1">default/1</a></td><td>Returns the value used for uninitialized entries.</td></tr>
+<tr><td valign="top"><a href="#foldl-3">foldl/3</a></td><td>Folds the elements of the array using the given function and
+  initial accumulator value.</td></tr>
+<tr><td valign="top"><a href="#foldr-3">foldr/3</a></td><td>Folds the elements of the array right-to-left using the given
+  function and initial accumulator value.</td></tr>
+<tr><td valign="top"><a href="#from_list-1">from_list/1</a></td><td>Equivalent to <a href="#from_list-2"><tt>from_list([], undefined)</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#from_list-2">from_list/2</a></td><td>Converts a list to an array.</td></tr>
+<tr><td valign="top"><a href="#from_orddict-1">from_orddict/1</a></td><td>Equivalent to <a href="#from_orddict-2"><tt>from_orddict([], undefined)</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#from_orddict-2">from_orddict/2</a></td><td>Converts an ordered list of pairs <code>{Index, Value}</code> to a
+  corresponding array.</td></tr>
+<tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns the value of entry <code>I</code>.</td></tr>
+<tr><td valign="top"><a href="#map-2">map/2</a></td><td>Maps the given function onto each element of the array.</td></tr>
+<tr><td valign="top"><a href="#new-0">new/0</a></td><td>Equivalent to <a href="#new-2"><tt>new(0, undefined)</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Size, undefined)</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new array.</td></tr>
+<tr><td valign="top"><a href="#reset-2">reset/2</a></td><td>Sets entry <code>I</code> to the default value for the array.</td></tr>
+<tr><td valign="top"><a href="#set-3">set/3</a></td><td>Sets entry <code>I</code> of the array to <code>Value</code>.</td></tr>
+<tr><td valign="top"><a href="#size-1">size/1</a></td><td>Returns the number of entries in the array.</td></tr>
+<tr><td valign="top"><a href="#sparse_foldl-3">sparse_foldl/3</a></td><td>Folds the elements of the array using the given function and
+  initial accumulator value, skipping default-valued entries.</td></tr>
+<tr><td valign="top"><a href="#sparse_foldr-3">sparse_foldr/3</a></td><td>Folds the elements of the array right-to-left using the given
+  function and initial accumulator value, skipping default-valued
+  entries.</td></tr>
+<tr><td valign="top"><a href="#sparse_map-2">sparse_map/2</a></td><td>Maps the given function onto each element of the array, skipping
+  default-valued entries.</td></tr>
+<tr><td valign="top"><a href="#sparse_to_list-1">sparse_to_list/1</a></td><td>Converts the array to a list, skipping default-valued entries.</td></tr>
+<tr><td valign="top"><a href="#sparse_to_orddict-1">sparse_to_orddict/1</a></td><td>Converts the array to an ordered list of pairs <code>{Index, Value}</code>,
+  skipping default-valued entries.</td></tr>
+<tr><td valign="top"><a href="#to_list-1">to_list/1</a></td><td>Converts the array to a list.</td></tr>
+<tr><td valign="top"><a href="#to_orddict-1">to_orddict/1</a></td><td>Converts the array to an ordered list of pairs <code>{Index, Value}</code>.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="default-1">default/1</a></h3>
+<div class="spec"><p><tt>default(Array::<a href="#type-array">array()</a>) -&gt; term()</tt></p></div><p>Returns the value used for uninitialized entries.
+ </p>
+<p><b>See also:</b> <a href="#new-2">new/2</a>.</p>
+
+<h3 class="function"><a name="foldl-3">foldl/3</a></h3>
+<div class="spec"><p><tt>foldl(Function, InitialAcc::term(), Array::<a href="#type-array">array()</a>) -&gt; term()</tt>
+<ul class="definitions"><li><tt>Function = (Index::integer(), Value::term(), Acc::term()) -&gt; term()</tt></li>
+</ul></p></div><p>Folds the elements of the array using the given function and
+  initial accumulator value. The elements are visited in order from the
+  lowest index to the highest. If <code>Function</code> is not a function, the
+  call fails with reason <code>badarg</code>.
+ </p>
+<p><b>See also:</b> <a href="#foldr-3">foldr/3</a>, <a href="#map-2">map/2</a>, <a href="#sparse_foldl-3">sparse_foldl/3</a>.</p>
+
+<h3 class="function"><a name="foldr-3">foldr/3</a></h3>
+<div class="spec"><p><tt>foldr(Function, InitialAcc::term(), Array::<a href="#type-array">array()</a>) -&gt; term()</tt>
+<ul class="definitions"><li><tt>Function = (Index::integer(), Value::term(), Acc::term()) -&gt; term()</tt></li>
+</ul></p></div><p>Folds the elements of the array right-to-left using the given
+  function and initial accumulator value. The elements are visited in
+  order from the highest index to the lowest. If <code>Function</code> is not a
+  function, the call fails with reason <code>badarg</code>.
+ </p>
+<p><b>See also:</b> <a href="#foldl-3">foldl/3</a>, <a href="#map-2">map/2</a>.</p>
+
+<h3 class="function"><a name="from_list-1">from_list/1</a></h3>
+<div class="spec"><p><tt>from_list(List::list()) -&gt; <a href="#type-array">array()</a></tt></p></div><p>Equivalent to <a href="#from_list-2"><tt>from_list([], undefined)</tt></a>.</p>
+
+
+<h3 class="function"><a name="from_list-2">from_list/2</a></h3>
+<div class="spec"><p><tt>from_list(List::list(), Default::term()) -&gt; <a href="#type-array">array()</a></tt></p></div><p>Converts a list to an array. <code>Default</code> is used as the value for
+  uninitialized entries as the array grows. If <code>List</code> is not a proper
+  list, the call fails with reason <code>badarg</code>.
+ </p>
+<p><b>See also:</b> <a href="#new-2">new/2</a>, <a href="#to_list-1">to_list/1</a>.</p>
+
+<h3 class="function"><a name="from_orddict-1">from_orddict/1</a></h3>
+<div class="spec"><p><tt>from_orddict(Orddict::list()) -&gt; <a href="#type-array">array()</a></tt></p></div><p>Equivalent to <a href="#from_orddict-2"><tt>from_orddict([], undefined)</tt></a>.</p>
+
+
+<h3 class="function"><a name="from_orddict-2">from_orddict/2</a></h3>
+<div class="spec"><p><tt>from_orddict(List::list(), Default::term()) -&gt; <a href="#type-array">array()</a></tt></p></div><p>Converts an ordered list of pairs <code>{Index, Value}</code> to a
+  corresponding array. <code>Default</code> is used as the value for uninitialized
+  entries as the array grows. If <code>List</code> is not a proper, ordered list
+  of pairs whose first elements are nonnegative integers, the call
+  fails with reason <code>badarg</code>.
+ </p>
+<p><b>See also:</b> <a href="#new-2">new/2</a>, <a href="#to_orddict-1">to_orddict/1</a>.</p>
+
+<h3 class="function"><a name="get-2">get/2</a></h3>
+<div class="spec"><p><tt>get(I::integer(), Array::<a href="#type-array">array()</a>) -&gt; term()</tt></p></div><p>Returns the value of entry <code>I</code>. If <code>I</code> is outside the current
+  range of the array, the call fails with reason <code>badarg</code>.</p>
+
+<h3 class="function"><a name="map-2">map/2</a></h3>
+<div class="spec"><p><tt>map(Function, Array::<a href="#type-array">array()</a>) -&gt; <a href="#type-array">array()</a></tt>
+<ul class="definitions"><li><tt>Function = (Index::integer(), Value::term()) -&gt; term()</tt></li>
+</ul></p></div><p>Maps the given function onto each element of the array. The
+  elements are visited in order from the lowest index to the highest.
+  If <code>Function</code> is not a function, the call fails with reason <code>badarg</code>.
+ </p>
+<p><b>See also:</b> <a href="#foldl-3">foldl/3</a>, <a href="#foldr-3">foldr/3</a>, <a href="#sparse_map-2">sparse_map/2</a>.</p>
+
+<h3 class="function"><a name="new-0">new/0</a></h3>
+<div class="spec"><p><tt>new() -&gt; <a href="#type-array">array()</a></tt></p></div><p>Equivalent to <a href="#new-2"><tt>new(0, undefined)</tt></a>.</p>
+
+<p><b>See also:</b> <a href="#new-1">new/1</a>, <a href="#new-2">new/2</a>.</p>
+
+<h3 class="function"><a name="new-1">new/1</a></h3>
+<div class="spec"><p><tt>new(Size::integer()) -&gt; <a href="#type-array">array()</a></tt></p></div><p>Equivalent to <a href="#new-2"><tt>new(Size, undefined)</tt></a>.</p>
+
+<p><b>See also:</b> <a href="#new-0">new/0</a>, <a href="#new-2">new/2</a>.</p>
+
+<h3 class="function"><a name="new-2">new/2</a></h3>
+<div class="spec"><p><tt>new(Size::integer(), Default::term()) -&gt; <a href="#type-array">array()</a></tt></p></div><p><p>Creates a new array. The array will initially have <code>Size</code>
+  entries, numbered from 0 to <code>Size</code>-1, whose values are initialized to
+  <code>Default</code>. If <code>Size</code> is not a nonnegative integer, the call fails
+  with reason <code>badarg</code>.</p>
+ 
+  <code>Default</code> is also used as the value for uninitialized entries as the
+  array grows; for example, if the array has initial size zero, and the
+  first entry to be set has index 10, then all the entries 0-9 will be
+  defined to have the default value.
+ </p>
+<p><b>See also:</b> <a href="#from_list-2">from_list/2</a>, <a href="#get-2">get/2</a>, <a href="#new-0">new/0</a>, <a href="#new-1">new/1</a>, <a href="#set-3">set/3</a>.</p>
+
+<h3 class="function"><a name="reset-2">reset/2</a></h3>
+<div class="spec"><p><tt>reset(I::integer(), Array::<a href="#type-array">array()</a>) -&gt; <a href="#type-array">array()</a></tt></p></div><p>Sets entry <code>I</code> to the default value for the array. This is
+  equivalent to <code>set(I, default(Array), Array)</code>.
+ </p>
+<p><b>See also:</b> <a href="#new-2">new/2</a>, <a href="#set-3">set/3</a>.</p>
+
+<h3 class="function"><a name="set-3">set/3</a></h3>
+<div class="spec"><p><tt>set(I::integer(), Value::term(), Array::<a href="#type-array">array()</a>) -&gt; <a href="#type-array">array()</a></tt></p></div><p>Sets entry <code>I</code> of the array to <code>Value</code>. If <code>I</code> is not a
+  nonnegative integer, the call fails with reason <code>badarg</code>.</p>
+
+<h3 class="function"><a name="size-1">size/1</a></h3>
+<div class="spec"><p><tt>size(Array::<a href="#type-array">array()</a>) -&gt; integer()</tt></p></div><p>Returns the number of entries in the array. Entries are numbered
+  from 0 to size-1; hence, this is also the index of the first unused
+  entry.</p>
+
+<h3 class="function"><a name="sparse_foldl-3">sparse_foldl/3</a></h3>
+<div class="spec"><p><tt>sparse_foldl(Function, InitialAcc::term(), Array::<a href="#type-array">array()</a>) -&gt; term()</tt>
+<ul class="definitions"><li><tt>Function = (Index::integer(), Value::term(), Acc::term()) -&gt; term()</tt></li>
+</ul></p></div><p>Folds the elements of the array using the given function and
+  initial accumulator value, skipping default-valued entries. The
+  elements are visited in order from the lowest index to the highest.
+  If <code>Function</code> is not a function, the call fails with reason <code>badarg</code>.
+ </p>
+<p><b>See also:</b> <a href="#foldl-3">foldl/3</a>, <a href="#sparse_foldr-3">sparse_foldr/3</a>.</p>
+
+<h3 class="function"><a name="sparse_foldr-3">sparse_foldr/3</a></h3>
+<div class="spec"><p><tt>sparse_foldr(Function, InitialAcc::term(), Array::<a href="#type-array">array()</a>) -&gt; term()</tt>
+<ul class="definitions"><li><tt>Function = (Index::integer(), Value::term(), Acc::term()) -&gt; term()</tt></li>
+</ul></p></div><p>Folds the elements of the array right-to-left using the given
+  function and initial accumulator value, skipping default-valued
+  entries. The elements are visited in order from the highest index to
+  the lowest. If <code>Function</code> is not a function, the call fails with
+  reason <code>badarg</code>.
+ </p>
+<p><b>See also:</b> <a href="#foldr-3">foldr/3</a>, <a href="#sparse_foldl-3">sparse_foldl/3</a>.</p>
+
+<h3 class="function"><a name="sparse_map-2">sparse_map/2</a></h3>
+<div class="spec"><p><tt>sparse_map(Function, Array::<a href="#type-array">array()</a>) -&gt; <a href="#type-array">array()</a></tt>
+<ul class="definitions"><li><tt>Function = (Index::integer(), Value::term()) -&gt; term()</tt></li>
+</ul></p></div><p>Maps the given function onto each element of the array, skipping
+  default-valued entries. The elements are visited in order from the
+  lowest index to the highest. If <code>Function</code> is not a function, the
+  call fails with reason <code>badarg</code>.
+ </p>
+<p><b>See also:</b> <a href="#map-2">map/2</a>.</p>
+
+<h3 class="function"><a name="sparse_to_list-1">sparse_to_list/1</a></h3>
+<div class="spec"><p><tt>sparse_to_list(Array::<a href="#type-array">array()</a>) -&gt; list()</tt></p></div><p>Converts the array to a list, skipping default-valued entries.
+ </p>
+<p><b>See also:</b> <a href="#to_list-1">to_list/1</a>.</p>
+
+<h3 class="function"><a name="sparse_to_orddict-1">sparse_to_orddict/1</a></h3>
+<div class="spec"><p><tt>sparse_to_orddict(Array::<a href="#type-array">array()</a>) -&gt; [{Index::integer(), Value::term()}]</tt></p></div><p>Converts the array to an ordered list of pairs <code>{Index, Value}</code>,
+  skipping default-valued entries.
+ </p>
+<p><b>See also:</b> <a href="#to_orddict-1">to_orddict/1</a>.</p>
+
+<h3 class="function"><a name="to_list-1">to_list/1</a></h3>
+<div class="spec"><p><tt>to_list(Array::<a href="#type-array">array()</a>) -&gt; list()</tt></p></div><p>Converts the array to a list.
+ </p>
+<p><b>See also:</b> <a href="#from_list-2">from_list/2</a>, <a href="#sparse_to_list-1">sparse_to_list/1</a>.</p>
+
+<h3 class="function"><a name="to_orddict-1">to_orddict/1</a></h3>
+<div class="spec"><p><tt>to_orddict(Array::<a href="#type-array">array()</a>) -&gt; [{Index::integer(), Value::term()}]</tt></p></div><p>Converts the array to an ordered list of pairs <code>{Index, Value}</code>.
+ </p>
+<p><b>See also:</b> <a href="#from_orddict-2">from_orddict/2</a>, <a href="#sparse_to_orddict-1">sparse_to_orddict/1</a>.</p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"/><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc, Sep 8 2006, 14:32:04.</i></p>
+</body>
+</html>
