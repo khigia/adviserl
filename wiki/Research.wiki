@@ -14,5 +14,8 @@ References:
 Links
  * [http://scholar.google.com/scholar?q=recommender+system&hl=en&lr=&safe=active&scoring=r&as_ylo=2002&start=0&sa=N Google scholar search "recommender system"]
  * [http://scholar.google.com/scholar?hl=en&lr=&q=%22collaborative+filtering%22&btnG=Search Google scholar search "collaborative filtering"]
- * [http://glinden.blogspot.com/2007/07/attacking-recommender-systems.html About spamming a recommender system]
+ * Blogs
+   * Selected articles
+     * [http://glinden.blogspot.com/2007/07/attacking-recommender-systems.html About spamming a recommender system]
+   * [http://glinden.blogspot.com Geeking with Greg - exploring the future of personalized information]
  
