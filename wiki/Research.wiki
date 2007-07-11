@@ -18,4 +18,5 @@ Links
    * Selected articles
      * [http://glinden.blogspot.com/2007/07/attacking-recommender-systems.html About spamming a recommender system]
    * [http://glinden.blogspot.com Geeking with Greg - exploring the future of personalized information]
+   * [http://khigia.wordpress.com/tag/recommender/ khi's life with an ech]
  
