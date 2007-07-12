@@ -21,6 +21,7 @@
          * ratings could use ets/dets (what about using qlc?); mnesia could allow a partition of data
          * adv_ratings could use a callback module like adv_items to provides different backend (dictionary, ETS, mnesia)?
          * adv_items could use ets or mnesia with copy ... this has to be delegated in the callback module because each module need its own data (not all have a matrix form)
+     * what about distributed collaborative filtering?
      * algorithm parallelism:
          * if prediction is a matrix base operation ... can be distributed (at least by group of lines)
          * building the matrix (init) can also be parallel
