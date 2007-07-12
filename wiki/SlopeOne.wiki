@@ -1,9 +1,10 @@
 #summary Links about the Slope-One algorithms
  * Slope One on Daniel Lemire page: http://www.daniel-lemire.com/fr/abstracts/SDM2005.html
-   * Implementation in standalone Java class (by the authors): http://www.daniel-lemire.com/fr/documents/publications/SlopeOne.java
-   * Implementation using PHP/MySQL (by the authors): http://www.daniel-lemire.com/fr/abstracts/TRD01.html
-   * Implementation tutorial in Python: http://www.serpentine.com/blog/2006/12/12/collaborative-filtering-made-easy/
-   * Implementations using Erlang:
-     * Brute force matrix building (using ETS and (lot of) list comprehensions) http://chlorophil.blogspot.com/2007/06/collaborative-filtering-weighted-slope.html
-     * Distributed matrix buuilding http://chlorophil.blogspot.com/2007/06/collaborative-filtering-weighted-slope_20.html
  * Slope One on wikipedia: http://en.wikipedia.org/wiki/Slope_One
+ * Implementations
+   * Standalone [http://www.daniel-lemire.com/fr/documents/publications/SlopeOne.java Java class] (by the authors)
+   * Using [http://www.daniel-lemire.com/fr/abstracts/TRD01.html PHP/MySQL] (by the authors)
+   * [http://www.serpentine.com/blog/2006/12/12/collaborative-filtering-made-easy/ Tutorial in Python]
+   * Using Erlang:
+     * [http://chlorophil.blogspot.com/2007/06/collaborative-filtering-weighted-slope.html Brute force matrix building] (using ETS and (lot of) list comprehensions)
+     * [http://chlorophil.blogspot.com/2007/06/collaborative-filtering-weighted-slope_20.html Distributed matrix buuilding]
