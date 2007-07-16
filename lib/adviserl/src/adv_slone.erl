@@ -260,6 +260,7 @@ update_items_del({Val1, _Data1}, {Val2, _Data2}, {Freq, Dev}) ->
 %%% @end
 format_prediction_result(Result0, Ratings, Options) ->
     % removing 'false' or 'bad' predictions
+    %?DEBUG("prediction 0: ~w~n", [Result0]),
     Result1 = case proplists:get_bool(no_strict, Options) of
         false ->
             lists:filter(
@@ -274,6 +275,7 @@ format_prediction_result(Result0, Ratings, Options) ->
         _ ->
             Result0
     end,
+    %?DEBUG("prediction 1: ~w~n", [Result1]),
     % removing predictions for known ratings
     {Result2, SourceRatingNumber} = adv_ratings:fold_ratings(
         fun(ItemID, ItemRating, {Predictions, RatingNumber}) ->
@@ -283,6 +285,7 @@ format_prediction_result(Result0, Ratings, Options) ->
         {Result1, 0},
         Ratings
     ),
+    %?DEBUG("prediction 2: ~w~n", [Result2]),
     % compute float value as prediction coefficients
     Coef = float(SourceRatingNumber),
     Result3 = lists:map(
@@ -291,6 +294,7 @@ format_prediction_result(Result0, Ratings, Options) ->
         end,
         Result2
     ),
+    %?DEBUG("prediction 3: ~w~n", [Result3]),
     % sort by decreasing prediction values
     Result4 = case proplists:get_bool(no_sorted, Options) of
         false ->
@@ -298,6 +302,7 @@ format_prediction_result(Result0, Ratings, Options) ->
         _ ->
             Result3
     end,
+    %?DEBUG("prediction 4: ~w~n", [Result4]),
     % finally
     Result4.
 

@@ -144,13 +144,15 @@ fold_ratings(Fun, Accumulator, SourceRatings) ->
 %%% @end
 print_debug() ->
     RatingsToList = fun(Ratings) ->
-        fold_ratings(
+        List0 = fold_ratings(
             fun(ItemID, {Val,_Dta}, Acc) ->
                 Acc ++ [{ItemID,Val}]
             end,
             [],
             Ratings
-        )
+        ),
+        List1 = lists:keysort(2, List0),
+        List1
     end,
     Printer = fun(SourceID, Ratings, Acc) ->
         ?INFO("src ~w: ~w", [SourceID, RatingsToList(Ratings)]),
