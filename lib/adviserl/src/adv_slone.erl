@@ -25,7 +25,7 @@
 
 % ~~ Declaration: API
 
-% callbacks for adv_items
+% callbacks for adv_predictions
 -export([
     create_state/1,
     load_ratings/0,
@@ -92,7 +92,7 @@ update_rating(SourceID, ItemID, _NewRating, OldRatings, Matrix) ->
             ?ERROR(
                 "Updating non existing rating (sourceID=~w itemID=~w)",
                 [SourceID, ItemID],
-                {error, "Bad usage of adv_items:update_rating/5"}
+                {error, "Bad usage of adv_predictions:update_rating/5"}
             );
         SourceRatings ->
             eval_ratings_items(

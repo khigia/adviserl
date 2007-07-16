@@ -70,12 +70,12 @@ init(_Args) ->
     },
     Recommender = adv_config:get_recommender(),
     ItemsSrv = {
-        adv_items,
-        {adv_items, start_link, [Recommender]},
+        adv_predictions,
+        {adv_predictions, start_link, [Recommender]},
         permanent,
         5000,
         worker,
-        [adv_items]
+        [adv_predictions]
     },
     % supervisor policy
     {ok, {
