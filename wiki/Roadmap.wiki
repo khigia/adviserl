@@ -10,10 +10,14 @@
          * example of using MySQL and some reporting data (how to implement a realtime callback?)
  * API
      * Internal
+         * provide an alias API for sourceID and/or itemID, and in the same time this will provide framework for content-based recommendation algo: add a module adv_users to maintain user data, rename adv_items to adv_predictions, add adv_items to maintain item data (good time to test ETS or mnesia?)
          * add possibility to update some ratings witout updating the items, and the items in one time afterward (see example load which call directly adv_ratings and adv_items)
-         * provide an alias API for sourceID and/or itemID
      * External
          * new generic named process API (gen_server) adviserl_api to wait for requests (add rating, get prediction...)
+         * few shell scripts / escripts to run prediction by command-line (API to adviserl without using directly Erlang):
+           * a script to boot as deamon with heartbeat
+           * adv-predict-source [-n api_node] [--sorted] [-n 5] 12 => print 2 numbers (itemID and score) by line
+           * adv-rate [-n api_node] sourceID itemID rating
          * python interface to talk with adviserl_api (http://www.lysator.liu.se/~tab/erlang/py_interface)
          * HTTP interface (yaws/inets or see http://wiki.trapexit.org/index.php/A_fast_web_server_demonstrating_some_undocumented_Erlang_features)
  * Implementation / performance / algorithm
