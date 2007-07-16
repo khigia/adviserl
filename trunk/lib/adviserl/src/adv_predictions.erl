@@ -20,7 +20,7 @@
 %%% @doc Management of cross-references.
 %%%
 %%% @end
--module(adv_items).
+-module(adv_predictions).
 
 
 % ~~ Declaration: OTP relative

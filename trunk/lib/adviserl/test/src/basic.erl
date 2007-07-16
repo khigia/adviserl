@@ -72,7 +72,7 @@ simple_test() ->
     banner(1, "rating matrix"),
     adv_ratings:print_debug(),
     banner(1, "items matrix"),
-    adv_items:print_debug(),
+    adv_predictions:print_debug(),
     banner(1, "prediction examples"),
     lists:foreach(
         fun(Source) ->
@@ -99,7 +99,7 @@ update_test() ->
     banner(1, "rating matrix"),
     adv_ratings:print_debug(),
     banner(1, "items matrix"),
-    adv_items:print_debug(),
+    adv_predictions:print_debug(),
     banner(1, "update few ratings"),
     lists:foreach(
         fun({SourceID, ItemID, Rating}) ->
@@ -114,7 +114,7 @@ update_test() ->
     banner(1, "rating matrix"),
     adv_ratings:print_debug(),
     banner(1, "items matrix"),
-    adv_items:print_debug(),
+    adv_predictions:print_debug(),
     banner(1, "update few ratings"),
     lists:foreach(
         fun({SourceID, ItemID, Rating}) ->
@@ -129,7 +129,7 @@ update_test() ->
     banner(1, "rating matrix"),
     adv_ratings:print_debug(),
     banner(1, "items matrix"),
-    adv_items:print_debug(),
+    adv_predictions:print_debug(),
     ok.
     
 close() ->

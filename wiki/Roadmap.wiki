@@ -10,7 +10,7 @@
          * example of using MySQL and some reporting data (how to implement a realtime callback?)
  * API
      * Internal
-         * provide an alias API for sourceID and/or itemID, and in the same time this will provide framework for content-based recommendation algo: add a module adv_users to maintain user data, rename adv_items to adv_predictions, add adv_items to maintain item data (good time to test ETS or mnesia?)
+         * provide an alias API for sourceID and/or itemID, and in the same time this will provide framework for content-based recommendation algo: add a module adv_sources to maintain source (user) data, add adv_items to maintain item data (good time to test ETS or mnesia?)
          * add possibility to update some ratings witout updating the items, and the items in one time afterward (see example load which call directly adv_ratings and adv_items)
      * External
          * new generic named process API (gen_server) adviserl_api to wait for requests (add rating, get prediction...)

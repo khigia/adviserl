@@ -42,7 +42,7 @@
 
 %%% @doc  Add or change a rating from a SourceID about a ItemID.
 %%% @spec (sourceID(), itemID(), rating()) -> ok
-%%% @todo API enforce call to both adv_ratings and adv_items:
+%%% @todo API enforce call to both adv_ratings and adv_predictions:
 %%% the code itself could implement some kind of automatic call back.
 %%% Also, get,set and update imply 3 lookup for sourceID ratings!!!
 %%% @end
@@ -51,7 +51,7 @@ rate(SourceID, ItemID, Rating={_RatingValue, _RatingData}) ->
     % items should have a better API and not require it!
     OldRatings = adv_ratings:get_ratings(SourceID),
     adv_ratings:set_rating(SourceID, ItemID, Rating),
-    adv_items:update_rating(
+    adv_predictions:update_rating(
         SourceID,
         ItemID,
         Rating,
@@ -60,7 +60,7 @@ rate(SourceID, ItemID, Rating={_RatingValue, _RatingData}) ->
 
 %%% @doc  Update a rating from a SourceID about a ItemID.
 %%% @spec (sourceID(), itemID(), (rating())->rating(), rating()) -> ok
-%%% @todo API enforce call to both adv_ratings and adv_items:
+%%% @todo API enforce call to both adv_ratings and adv_predictions:
 %%% the code itself could implement some kind of automatic call back.
 %%% Also, get,set and update imply 3 lookup for sourceID ratings!!!
 %%% @end
@@ -70,7 +70,7 @@ rate(SourceID, ItemID, Updater, Default) ->
     OldRatings = adv_ratings:get_ratings(SourceID),
     adv_ratings:update_rating(SourceID, ItemID, Updater, Default),
     Rating = adv_ratings:get_rating(SourceID, ItemID),
-    adv_items:update_rating(
+    adv_predictions:update_rating(
         SourceID,
         ItemID,
         Rating,
@@ -96,11 +96,11 @@ recommend_all(SourceID, Options) when is_integer(SourceID), is_list(Options) ->
         undefined ->
             {error, "SourceID not recognized"};
         Ratings ->
-            adv_items:predict_all(Ratings, Options)
+            adv_predictions:predict_all(Ratings, Options)
     end;
 recommend_all(RatingValues, Options) when is_list(RatingValues), is_list(Options) ->
     Ratings = adv_ratings:make_ratings(RatingValues),
-    adv_items:predict_all(Ratings, Options).
+    adv_predictions:predict_all(Ratings, Options).
 
 
 % ~~ Declaration: Internal
