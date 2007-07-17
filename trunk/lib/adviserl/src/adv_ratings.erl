@@ -17,7 +17,7 @@
 %===========================================================================
 %%% @copyright 2007 Affle Pvt. Ltd.
 %%% @author Ludovic Coquelle <lcoquelle@gmail.com>
-%%% @doc Management of data source.
+%%% @doc Storage management of ratings per source.
 %%%
 %%% Refer to {@link adv_types} for type definitions.
 %%%
@@ -44,7 +44,8 @@
     set_rating/3,
     update_rating/4,
     get_ratings/1,
-    make_ratings/1,
+    from_list/1,
+    to_list/1,
     fold_sources/2,
     fold_ratings/3
 ]).
@@ -128,10 +129,25 @@ fold_sources(Fun, Accumulator) ->
     gen_server:call(?MODULE, {fold_sources, Fun, Accumulator}, infinity).
 
 %%% @doc  Create a ratings structure from a list of key-value pairs.
-%%% @spec ([{integer(),integer()}]) -> ratings()
+%%% @spec ([{itemID(),ratingValue()}]) -> ratings()
+%%% @todo Check for errors
 %%% @end
-make_ratings(RatingKeyValues) when is_list(RatingKeyValues) ->
-    make_ratings_priv(RatingKeyValues).
+from_list(RatingKeyValues) when is_list(RatingKeyValues) ->
+    Ratings = lists:map(
+        fun({Key,Val}) -> {Key, {Val, nodata}} end,
+        RatingKeyValues
+    ),
+    ?DICT:from_list(Ratings).
+
+%%% @doc  Create a list of key-value pairs from a ratings structure.
+%%% @spec (ratings()) -> [{itemID(),ratingValue()}]
+%%% @todo Check for errors
+%%% @end
+to_list(Ratings) ->
+    lists:map(
+        fun({Key, {RatingValue, _RatingData}}) -> {Key, RatingValue} end,
+        ?DICT:to_list(Ratings)
+    ).
 
 %%% @doc  Fold a ratings structure passing rating by rating to the function.
 %%% @spec (((itemID(),rating(),Acc)->Acc), Acc, ratings()) -> Acc
@@ -296,15 +312,6 @@ fold_sources(Fun, Acc, Ratings) ->
 %%% @end
 fold_ratings_priv(Fun, Accumulator, SourceRatings) ->
     ?DICT:fold(Fun, Accumulator, SourceRatings).
-
-%%% @doc  Make rating structure from a key-value pair of ratings.
-%%% @spec ([{itemID(),ratingValue()}]) -> ratings()
-%%% @private
-%%% @todo Check for errors
-%%% @end
-make_ratings_priv(KeyValues) ->
-    Ratings = lists:map(fun({Key,Val}) -> {Key, {Val, nodata}} end, KeyValues),
-    ?DICT:from_list(Ratings).
 
 
 % ~~ Unit tests
