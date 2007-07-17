@@ -34,11 +34,47 @@
 % ~~ Declaration: API
 
 -export([
+    start_app/0,
+    stop_node/1,
     rate/3,
     rate/4,
     recommend_all/1,
     recommend_all/2
 ]).
+
+
+% ~~ Declaration: Internal
+
+-include("include/adviserl.hrl").
+
+
+% ~~ Implementation: API
+
+%%% @doc  Start localy the OTP application (run main application).
+%%% @spec () -> ok
+%%% @end
+start_app() ->
+    % run the main application
+    ?DEBUG("Starting the main OTP application", []),
+    IsOK = application:start(adviserl),
+    ?DEBUG("adviserl application status: ~p", [IsOK]).
+
+%%% @doc  Stop the OTP application AND shutdown remote node AND local node!
+%%% @spec ([Node]) -> ok
+%%% @end
+stop_node([Node]) ->
+    case locate_node(Node) of
+        {ok, FullNode} ->
+            % stop the application,
+            ?DEBUG("Stopping remote application", []),
+            rpc:call(FullNode, application, stop, [adviserl]),
+            ?DEBUG("Shutdown remote node", []),
+            rpc:call(FullNode, init, stop, []),
+            ?INFO("Stopped.", []);
+        {error, Reason} ->
+            ?WARNING("Can't locate application/node: ~s.", [Reason])
+    end,
+    init:stop().
 
 %%% @doc  Add or change a rating from a SourceID about a ItemID.
 %%% @spec (sourceID(), itemID(), rating()) -> ok
@@ -99,16 +135,8 @@ recommend_all(SourceID, Options) when is_integer(SourceID), is_list(Options) ->
             adv_predictions:predict_all(Ratings, Options)
     end;
 recommend_all(RatingValues, Options) when is_list(RatingValues), is_list(Options) ->
-    Ratings = adv_ratings:make_ratings(RatingValues),
+    Ratings = adv_ratings:from_list(RatingValues),
     adv_predictions:predict_all(Ratings, Options).
-
-
-% ~~ Declaration: Internal
-%empty
-
-
-% ~~ Implementation: API
-%empty
 
 
 % ~~ Implementation: Behaviour callbacks
@@ -130,7 +158,26 @@ stop(State) ->
 
 
 % ~~ Implementation: Internal
-%empty
+
+locate_node(MaybeLocalNode) ->
+    case net_adm:ping(MaybeLocalNode) of
+        pong ->
+            {ok, MaybeLocalNode};
+        _ ->
+            LNodeStr = atom_to_list(MaybeLocalNode) ++ "@localhost",
+            LNodeAtom = list_to_atom(LNodeStr),
+            case net_adm:ping(LNodeAtom) of
+                pong ->
+                    {ok, LNodeAtom};
+                _ ->
+                    {
+                        error,
+                        "Can't find node " ++ LNodeStr ++
+                            " on host " ++ net_adm:localhost()
+                    }
+            end
+    end.
+
 
 
 % ~~ Unit tests

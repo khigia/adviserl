@@ -60,6 +60,14 @@ start_link() ->
 %%% @see  supervisor:init/1
 %%% @end
 init(_Args) ->
+    API = {
+        adv_api,
+        {adv_api, start_link, []},
+        permanent,
+        5000,
+        worker,
+        [adv_api]
+    },
     RatingsSrv = {
         adv_ratings,
         {adv_ratings, start_link, []},
@@ -80,7 +88,7 @@ init(_Args) ->
     % supervisor policy
     {ok, {
         {one_for_all, 2, 5},
-        [RatingsSrv, ItemsSrv]
+        [API, RatingsSrv, ItemsSrv]
     }}.
 
 
