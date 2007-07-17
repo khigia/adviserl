@@ -58,7 +58,7 @@ dev: devbuild test checks doc
 .PHONY : logs
 logs:
 	@echo "==== Extracting logs ===="
-	${CMD_ERL} -noshell ${ERLPATH} -eval "application:start(sasl), rb:start([{report_dir, \"./log/\"}]), rb:show()." -s erlang halt
+	${CMD_ERL} -noshell ${ERLPATH} -boot start_sasl -eval "rb:start([{report_dir, \"./log/\"}]), rb:show()." -s erlang halt
 	@echo
 
 .PHONY : devbuild
