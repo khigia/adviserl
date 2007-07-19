@@ -171,7 +171,7 @@ print_debug() ->
         List1
     end,
     Printer = fun(SourceID, Ratings, Acc) ->
-        ?INFO("src ~w: ~w", [SourceID, RatingsToList(Ratings)]),
+        io:format("src ~w: ~w", [SourceID, RatingsToList(Ratings)]),
         Acc
     end,
     fold_sources(Printer, ok).
