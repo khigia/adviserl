@@ -35,5 +35,14 @@ SOURCE=$1
 erl \
     -noshell \
     -sname $LOCAL_NODE \
-    -eval "lists:foreach(fun({I,R})->io:format(\"~w ~w~n\", [I,R]) end, gen_server:call({adv_api,$API_NODE}, {recommend_all, $SOURCE}))." \
-    -s erlang halt
+    -eval "\
+        case gen_server:call({adv_api,$API_NODE}, {recommend_all, $SOURCE}) of\
+            {error, Reason} ->\
+                erlang:halt(1);\
+            Recommendations ->\
+                lists:foreach(\
+                    fun({I,R}) -> io:format(\"~w ~w~n\", [I,R]) end,\
+                    Recommendations\
+                ),\
+                erlang:halt(0)\
+        end."
