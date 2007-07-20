@@ -17,21 +17,10 @@
 %===========================================================================
 %%% @copyright 2007 Affle Pvt. Ltd.
 %%% @author Ludovic Coquelle <lcoquelle@gmail.com>
-%%% @doc adviserl API through an OTP gen_server.
-%%%
-%%% The call respond to those messages:
-%%% <ul>
-%%%   <li>`{get_rating_list, SourceID} -> [{ItemID, RatingIntegerValue}]'</li>
-%%%   <li>`{rate, SourceID, ItemID, RatingValue} -> ok'</li>
-%%%   <li>`{rate, SourceID, ItemID, Updater, Default} -> ok'</li>
-%%%   <li>`{recommend_all, SourceIDOrRatingList} -> predictions()'</li>
-%%%   <li>`{recommend_all, SourceIDOrRatingList, Options} -> predictions()'</li>
-%%% </ul>
-%%%
-%%% For more info, see adviserl documentation.
+%%% @doc Store and manage data with integer key.
 %%%
 %%% @end
--module(adv_api).
+-module(adv_data).
 
 
 % ~~ Declaration: OTP relative
@@ -47,52 +36,74 @@
 
 
 % ~~ Declaration: API
--export([
-    start_link/0
-]).
+%empty (intend to be called by adv_items or adv_sources API)
 
 
 % ~~ Declaration: Internal
 
 -include("include/adviserl.hrl").
 
-
-% ~~ Implementation: API
-
-%%% @doc  Start server locally registered.
-%%% @see  gen_server:start_link/4
-%%% @end
-start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+-record(st, {
+    tid,        % ETS identifier: {ID, Key, ObjectData}
+    index,      % gb_tree index per ID (ETS is indexed per Key)
+    next        % next free ID slot
+}).
 
 
 % ~~ Implementation: Behaviour callbacks
 
-init(_InitArgs) ->
-    {ok, nostate}.
+init(TableName) ->
+    {ok, #st{
+        tid = ets:new(TableName, [set, {keypos,2}]),
+        index = gb_trees:empty(),
+        next = 1
+    }}.
 
-handle_call({get_rating_list, SourceID}, _From, State) ->
-    case adv_ratings:get_ratings(SourceID) of
-        undefined ->
-            {reply, [], State};
-        Ratings ->
-            {reply, adv_ratings:to_list(Ratings), State}
+handle_call({insert_new, Key, Data}, _From, State) ->
+    TID = State#st.tid,
+    Idx = State#st.index,
+    Cur = State#st.next,
+    case ets:insert_new(TID, {Cur, Key, Data}) of
+        true ->
+            NewIdx = gb_trees:enter(Cur, Key, Idx),
+            {reply, {true, Cur}, State#st{index=NewIdx, next=Cur + 1}};
+        _ ->
+            {reply, {false, ets:lookup_element(TID, Key, 1)}, State}
     end;
-
-handle_call({rate, SourceID, ItemID, Rating}, _From, State) ->
-    {reply, adviserl:rate(SourceID, ItemID, Rating), State};
-
-handle_call({rate, SourceID, ItemID, Updater, Default}, _From, State) ->
-    {reply, adviserl:rate(SourceID, ItemID, Updater, Default), State};
-
-handle_call({recommend_all, SourceIDOrRatings}, _From, State) ->
-    {reply, adviserl:recommend_all(SourceIDOrRatings), State};
-
-handle_call({recommend_all, SourceIDOrRatings, Options}, _From, State) ->
-    {reply, adviserl:recommend_all(SourceIDOrRatings, Options), State};
-
+handle_call({id_from_key, Key}, _From, State) ->
+    TID = State#st.tid,
+    case (catch ets:lookup_element(TID, Key, 1)) of
+        Int when is_integer(Int) ->
+            {reply, Int, State};
+        _ ->
+            {reply, undefined, State}
+    end;
+handle_call({object_from_key, Key}, _From, State) ->
+    TID = State#st.tid,
+    case ets:lookup(TID, Key) of
+        [Object] ->
+            {reply, Object, State};
+        [] ->
+            {reply, undefined, State}
+    end;
+handle_call({key_from_id, ID}, _From, State) ->
+    Idx = State#st.index,
+    case gb_trees:lookup(ID, Idx) of
+        {value, Key} ->
+            {reply, {ok, Key}, State};
+        _ ->
+            {reply, undefined, State}
+    end;
+handle_call({object_from_id, ID}, From, State) ->
+    Idx = State#st.index,
+    case gb_trees:lookup(ID, Idx) of
+        {value, Key} ->
+            handle_call({object_from_key, Key}, From, State);
+        _ ->
+            {reply, undefined, State}
+    end;
 handle_call(_Request, _From, State) ->
-    {reply, not_handled_call, State}.
+    {reply, unknown_call, State}.
 
 handle_cast(_Request, State) ->
     {noreply, State}.

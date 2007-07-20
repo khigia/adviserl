@@ -68,7 +68,23 @@ init(_Args) ->
         worker,
         [adv_api]
     },
-    RatingsSrv = {
+    Items = {
+        adv_items,
+        {adv_items, start_link, []},
+        permanent,
+        5000,
+        worker,
+        [adv_items, adv_data]
+    },
+    Sources = {
+        adv_sources,
+        {adv_sources, start_link, []},
+        permanent,
+        5000,
+        worker,
+        [adv_sources, adv_data]
+    },
+    Ratings = {
         adv_ratings,
         {adv_ratings, start_link, []},
         permanent,
@@ -76,10 +92,9 @@ init(_Args) ->
         worker,
         [adv_ratings]
     },
-    Recommender = adv_config:get_recommender(),
-    ItemsSrv = {
+    Predictions = {
         adv_predictions,
-        {adv_predictions, start_link, [Recommender]},
+        {adv_predictions, start_link, [adv_config:get_recommender()]},
         permanent,
         5000,
         worker,
@@ -88,7 +103,7 @@ init(_Args) ->
     % supervisor policy
     {ok, {
         {one_for_all, 2, 5},
-        [API, RatingsSrv, ItemsSrv]
+        [API, Items, Sources, Ratings, Predictions]
     }}.
 
 

@@ -83,8 +83,8 @@ stop_node([Node]) ->
 %%% Also, get,set and update imply 3 lookup for sourceID ratings!!!
 %%% @end
 rate(SourceID, ItemID, Rating={_RatingValue, _RatingData}) ->
-    % this OldRatings is not necessary!
-    % items should have a better API and not require it!
+    % TODO: this OldRatings is not necessary!
+    % adv_predictions should have a better API and not require it!
     OldRatings = adv_ratings:get_ratings(SourceID),
     adv_ratings:set_rating(SourceID, ItemID, Rating),
     adv_predictions:update_rating(
