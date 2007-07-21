@@ -79,61 +79,24 @@ handle_call({get_posts, User, Options}, _From, State=#st{user=User})
     when
         is_list(User)
     ->
-    %strategy 1: call api update; if not uptodate, call api all
     PasswordFun = State#st.password_fun,
     Password = PasswordFun(),
-    case get_posts(User) of
-        {User, CurTimestamp, CurPosts} ->
-            case deli_api:update(User, Password) of
-                {ok, Timestamp} ->
-                    case CurTimestamp < Timestamp of
-                        true ->
-                            case deli_api:posts_all(User, Password) of
-                                {ok, {PTimestamp, Posts}} ->
-                                    put_posts(
-                                        User,
-                                        PTimestamp,
-                                        Posts
-                                    ),
-                                    {reply, {ok, Posts, uptodate}, State};
-                                _ ->
-                                    {reply, {ok, CurPosts, archive}, State}
-                            end;
-                        _ ->
-                            {reply, {ok, CurPosts, uptodate}, State}
-                    end;
-                _Error ->
-                    {reply, {ok, CurPosts, archive}, State}
-            end;
-        empty ->
-            case deli_api:posts_all(User, Password) of
-                {ok, {RTimestamp, Posts}} ->
-                    put_posts(
-                        User,
-                        RTimestamp,
-                        Posts
-                    ),
-                    {reply, {ok, Posts, uptodate}, State};
-                _ ->
-                    {reply, {ok, [], archive}, State}
-            end;
-        Error ->
-            {reply, Error, State}
+    case proplists:get_bool(no_update, Options) of
+        true ->
+            {reply, local_get_posts(User, Password), State};
+        _ ->
+            {reply, net_get_posts(User, Password), State}
     end;
-    %TODO strategy 2: call api update; if not uptodate, call api date then get for each
 handle_call({get_posts, User, Options}, _From, State=#st{user=AuthUser})
     when
         is_list(User),
         User /= AuthUser
     ->
-    % TODO we may support this feature using rss api
-    case get_posts(User) of
-        {User, _CurTimestamp, CurPosts} ->
-            {reply, {ok, CurPosts, archive}, State};
-        empty ->
-            {reply, {ok, [], archive}, State};
-        Error ->
-            {reply, Error, State}
+    case proplists:get_bool(no_update, Options) of
+        true ->
+            {reply, local_get_posts(User), State};
+        _ ->
+            {reply, net_get_posts(User), State}
     end;
 handle_call(_Request, _From, State) ->
     {reply, unknown_request, State}.
@@ -153,6 +116,58 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 % ~~ Implementation: Internal
+
+local_get_posts(User) ->
+    case get_posts(User) of
+        {User, _CurTimestamp, CurPosts} ->
+            {ok, CurPosts, archive};
+        empty ->
+            {ok, [], archive};
+        Error ->
+            Error
+    end.
+
+local_get_posts(User, _Password) ->
+    local_get_posts(User).
+
+net_get_posts(User) ->
+    % TODO we may support download feature using rss api
+    local_get_posts(User).
+
+net_get_posts(User, Password) ->
+    %strategy 1: call api update; if not uptodate, call api all
+    %TODO strategy 2: call api update; if not uptodate, call api date then get for each
+    case get_posts(User) of
+        {User, CurTimestamp, CurPosts} ->
+            case deli_api:posts_update(User, Password) of
+                {ok, Timestamp} ->
+                    case CurTimestamp < Timestamp of
+                        true ->
+                            api_posts_all(User, Password, CurPosts);
+                        _ ->
+                            {ok, CurPosts, uptodate}
+                    end;
+                _Error ->
+                    {ok, CurPosts, archive}
+            end;
+        empty ->
+            api_posts_all(User, Password, []);
+        Error ->
+            Error
+    end.
+
+api_posts_all(User, Password, Cache) ->
+    case deli_api:posts_all(User, Password) of
+        {ok, {PTimestamp, Posts}} ->
+            put_posts(
+                User,
+                PTimestamp,
+                Posts
+            ),
+            {ok, Posts, uptodate};
+        _ ->
+            {ok, Cache, archive}
+    end.
 
 open_posts() ->
     {ok, delicious_posts} = dets:open_file(delicious_posts, [
