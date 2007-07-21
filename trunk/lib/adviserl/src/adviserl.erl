@@ -77,12 +77,19 @@ stop_node([Node]) ->
     init:stop().
 
 %%% @doc  Add or change a rating from a SourceID about a ItemID.
+%%% If SourceID or ItemID are not integer, ID are retrieve from
+%%% adv_sources and adv_items, creating an entry if needed (SourceID
+%%% and ItemID must always be some unique key, whatever type).
 %%% @spec (sourceID(), itemID(), rating()) -> ok
 %%% @todo API enforce call to both adv_ratings and adv_predictions:
 %%% the code itself could implement some kind of automatic call back.
 %%% Also, get,set and update imply 3 lookup for sourceID ratings!!!
 %%% @end
-rate(SourceID, ItemID, Rating={_RatingValue, _RatingData}) ->
+rate(SourceID, ItemID, Rating={_RatingValue, _RatingData})
+    when
+        is_integer(SourceID),
+        is_integer(ItemID)
+    ->
     % TODO: this OldRatings is not necessary!
     % adv_predictions should have a better API and not require it!
     OldRatings = adv_ratings:get_ratings(SourceID),
@@ -92,15 +99,28 @@ rate(SourceID, ItemID, Rating={_RatingValue, _RatingData}) ->
         ItemID,
         Rating,
         OldRatings
-    ).
+    );
+rate(Source, Item, Rating) when not is_integer(Source) ->
+    {_IsInserted, ID} = adv_sources:insert_new(Source, no_data),
+    rate(ID, Item, Rating);
+rate(Source, Item, Rating) when not is_integer(Item) ->
+    {_IsInserted, ID} = adv_items:insert_new(Item, no_data),
+    rate(Source, ID, Rating).
 
 %%% @doc  Update a rating from a SourceID about a ItemID.
+%%% If SourceID or ItemID are not integer, ID are retrieve from
+%%% adv_sources and adv_items, creating an entry if needed (SourceID
+%%% and ItemID must always be some unique key, whatever type).
 %%% @spec (sourceID(), itemID(), (rating())->rating(), rating()) -> ok
 %%% @todo API enforce call to both adv_ratings and adv_predictions:
 %%% the code itself could implement some kind of automatic call back.
 %%% Also, get,set and update imply 3 lookup for sourceID ratings!!!
 %%% @end
-rate(SourceID, ItemID, Updater, Default) ->
+rate(SourceID, ItemID, Updater, Default)
+    when
+        is_integer(SourceID),
+        is_integer(ItemID)
+    ->
     % this OldRatings is not necessary!
     % items should have a better API and not require it!
     OldRatings = adv_ratings:get_ratings(SourceID),
@@ -111,7 +131,13 @@ rate(SourceID, ItemID, Updater, Default) ->
         ItemID,
         Rating,
         OldRatings
-    ).
+    );
+rate(Source, Item, Updater, Default) when not is_integer(Source) ->
+    {_IsInserted, ID} = adv_sources:insert_new(Source, no_data),
+    rate(ID, Item, Updater, Default);
+rate(Source, Item, Updater, Default) when not is_integer(Item) ->
+    {_IsInserted, ID} = adv_items:insert_new(Item, no_data),
+    rate(Source, ID, Updater, Default).
         
 %%% @doc  Retrieve prediction for each itemID with default options.
 %%% Call recommend_all/2 with default value for options (sorted and strict).
