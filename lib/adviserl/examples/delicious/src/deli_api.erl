@@ -35,7 +35,7 @@
 
 % ~~ Declaration: API
 -export([
-    update/2,
+    posts_update/2,
     posts_all/2
 ]).
 
@@ -50,13 +50,13 @@
 % ~~ Implementation: API
 
 % (string(),string()) -> {ok, {{Y,M,D},{H,M,S}}}|{error,Reason}
-update(User, Password) ->
+posts_update(User, Password) ->
     case http:request(
         get,
         {
             "https://api.del.icio.us/v1/posts/update",
             %TODO need to set User-Agent
-            [{"Authorization", "Basic " ++ http_base_64:encode(User ++ ":" ++ Password)}]
+            [http_header_basic_authorization(User, Password)]
         },
         [{ssl, []}],
         []
@@ -73,7 +73,7 @@ posts_all(User, Password) ->
         {
             "https://api.del.icio.us/v1/posts/all?",
             %TODO need to set User-Agent
-            [{"Authorization", "Basic " ++ http_base_64:encode(User ++ ":" ++ Password)}]
+            [http_header_basic_authorization(User, Password)]
         },
         [{ssl, []}],
         []
@@ -86,6 +86,13 @@ posts_all(User, Password) ->
 
 
 % ~~ Implementation: Internal
+
+
+http_header_basic_authorization(User, Password) ->
+    {
+        "Authorization",
+        "Basic " ++ http_base_64:encode(User ++ ":" ++ Password)
+    }.
 
 parse_api_update(Body) ->
     {Doc ,_} = xmerl_scan:string(Body),
