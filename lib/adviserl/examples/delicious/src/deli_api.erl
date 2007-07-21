@@ -31,7 +31,6 @@
 %%% @end
 -module(deli_api).
 
--compile(export_all).
 
 % ~~ Declaration: API
 -export([
