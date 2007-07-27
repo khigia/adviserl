@@ -288,13 +288,13 @@ format_prediction_result(Result0, Ratings, Options) ->
                 Ratings
             );
         _ ->
-            adv_ratings:fold_ratings(
+            {Result1, adv_ratings:fold_ratings(
                 fun(_ItemID, _ItemRating, RatingNumber) ->
                     RatingNumber + 1
                 end,
                 0,
                 Ratings
-            )
+            )}
     end,
     %?DEBUG("prediction 2: ~w~n", [Result2]),
     % compute float value as prediction coefficients
