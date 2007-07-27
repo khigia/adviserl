@@ -151,7 +151,7 @@ recommend_all(IDOrRatings) ->
 %%%
 %%% If option strict is true, return only strictly positive predictions.
 %%% @spec (Source::sourceID()|[{itemID(), ratingValue()}], [Option]) -> predictions()|{error, Reason}
-%%%     Option = {no_sorted, bool()} | {no_strict, bool()}
+%%%     Option = {no_sorted, bool()} | {no_strict, bool()} | {no_remove_known, bool()}
 %%% @end
 recommend_all(SourceID, Options) when is_integer(SourceID), is_list(Options) ->
     case adv_ratings:get_ratings(SourceID) of

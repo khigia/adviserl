@@ -277,14 +277,25 @@ format_prediction_result(Result0, Ratings, Options) ->
     end,
     %?DEBUG("prediction 1: ~w~n", [Result1]),
     % removing predictions for known ratings
-    {Result2, SourceRatingNumber} = adv_ratings:fold_ratings(
-        fun(ItemID, ItemRating, {Predictions, RatingNumber}) ->
-                %io:format("removing ~p: ~p~n", [ItemID, lists:keymember(ItemID, 1, Predictions)]),
-                {lists:keydelete(ItemID, 1, Predictions), RatingNumber + 1}
-        end,
-        {Result1, 0},
-        Ratings
-    ),
+    {Result2, SourceRatingNumber} = case proplists:get_bool(no_remove_known, Options) of
+        false ->
+            adv_ratings:fold_ratings(
+                fun(ItemID, ItemRating, {Predictions, RatingNumber}) ->
+                    %io:format("removing ~p: ~p~n", [ItemID, lists:keymember(ItemID, 1, Predictions)]),
+                    {lists:keydelete(ItemID, 1, Predictions), RatingNumber + 1}
+                end,
+                {Result1, 0},
+                Ratings
+            );
+        _ ->
+            adv_ratings:fold_ratings(
+                fun(_ItemID, _ItemRating, RatingNumber) ->
+                    RatingNumber + 1
+                end,
+                0,
+                Ratings
+            )
+    end,
     %?DEBUG("prediction 2: ~w~n", [Result2]),
     % compute float value as prediction coefficients
     Coef = float(SourceRatingNumber),
