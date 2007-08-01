@@ -22,6 +22,7 @@
     {mod, {adviserl, [
     ]}},
     {env, [
+        {ratings,     {adv_ratings_dod, []}},
         {recommender, {adv_slone, []}}
     ]}
 ]}.

@@ -39,7 +39,8 @@
 
 
 % ~~ Declaration: Internal
-%empty
+
+-include("include/adviserl.hrl").
 
 
 % ~~ Implementation: API
@@ -84,17 +85,24 @@ init(_Args) ->
         worker,
         [adv_sources, adv_data]
     },
+    RatingBehaviour = adv_config:get_ratings_behaviour(),
+    {RatingsMod, RatingsModArgs} = RatingBehaviour,
+    ?INFO("ratings configuration: ~w", [RatingBehaviour]),
     Ratings = {
         adv_ratings,
-        {adv_ratings, start_link, []},
+        {
+            gen_server,
+            start_link,
+            [{local,?RATINGS_PNAME}, RatingsMod, RatingsModArgs, []]
+        },
         permanent,
         5000,
         worker,
-        [adv_ratings]
+        [RatingsMod]
     },
     Predictions = {
         adv_predictions,
-        {adv_predictions, start_link, [adv_config:get_recommender()]},
+        {adv_predictions, start_link, [adv_config:get_recommender_behaviour()]},
         permanent,
         5000,
         worker,
