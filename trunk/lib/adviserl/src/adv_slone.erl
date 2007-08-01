@@ -23,16 +23,21 @@
 %%% @end
 -module(adv_slone).
 
-% ~~ Declaration: API
 
-% callbacks for adv_predictions
+% ~~ Declaration: OTP relative
+-behaviour(gen_server).
 -export([
-    create_state/1,
-    load_ratings/0,
-    update_rating/5,
-    predict_all/3,
-    print_debug/1
+    init/1,         % (InitArgs) -> Result
+    handle_call/3,  % (Request, From, State) -> Result
+    handle_cast/2,  % (Request, State) -> Result
+    handle_info/2,  % (Info, State) -> Result
+    terminate/2,    % (Reason, State) -> term() % result is not used
+    code_change/3   % (OldVsn, State, Extra) -> {ok, NewState}
 ]).
+
+
+% ~~ Declaration: API
+%empty
 
 
 % ~~ Declaration: Internal
@@ -40,14 +45,74 @@
 -include("include/adviserl.hrl").
 -include("include/adv_mat.hrl").
 
+-record(st, {
+    matrix
+}).
+
 
 % ~~ Implementation: API
+%empty
+
+
+% ~~ Implementation: Behaviour callbacks
+
+init(_InitArgs) ->
+    State = #st{
+        matrix = create_state()
+    },
+    {ok, State}.
+
+handle_call(
+    init,
+    _From,
+    State = #st{}
+) ->
+    M = load_ratings(),
+    {reply, ok, State#st{matrix = M}};
+handle_call(
+    {update_rating, SourceID, ItemID, NewRating, OldRatings},
+    _From,
+    State = #st{matrix = Data0}
+) ->
+    Data1 = update_rating(SourceID, ItemID, NewRating, OldRatings, Data0),
+    {reply, ok, State#st{matrix = Data1}};
+handle_call(
+    {predict_all, Ratings, Options},
+    _From,
+    State = #st{matrix = Data0}
+) ->
+    Prediction = predict_all(Ratings, Data0, Options),
+    {reply, Prediction, State};
+handle_call(
+    print_debug,
+    _From,
+    State = #st{matrix = Data0}
+) ->
+    print_debug(Data0),
+    {reply, ok, State};
+handle_call(_Request, _From, State) ->
+    {reply, unknow_call_request, State}.
+
+handle_cast(_Request, State) ->
+    {noreply, State}.
+
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+terminate(_Reason, _State) ->
+    ok.
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
+
+
+% ~~ Implementation: Internal
 
 %%% @doc  Create data structure: skew matrix containing all cross references.
-%%% @spec ([Option]) -> SkewMatrix
+%%% @spec () -> SkewMatrix
 %%% @private
 %%% @end
-create_state(_Options) ->
+create_state() ->
     create_skewmatrix().
 
 %%% @doc  Traverse all available ratings to populate the items matrix.
@@ -57,7 +122,7 @@ create_state(_Options) ->
 load_ratings() ->
     %TODO this may be parallelized...
     adv_ratings:fold_sources(
-        fun(SourceID, SourceRatings, AccMatrix) ->
+        fun(_SourceID, SourceRatings, AccMatrix) ->
             %?DEBUG("Fold sources: source=~w", [SourceID]),
             eval_ratings_items(
                 fun update_items_add/3,
@@ -79,7 +144,7 @@ update_rating(SourceID, ItemID, _NewRating, OldRatings, Matrix) ->
     RevertedMatrix = case OldRatings of
         undefined ->
             Matrix;
-        Any ->
+        _Any ->
             eval_ratings_items(
                 fun update_items_del/3,
                 OldRatings,
@@ -102,86 +167,6 @@ update_rating(SourceID, ItemID, _NewRating, OldRatings, Matrix) ->
             )
     end.
 
-%%% @doc  Given a set of ratings and a items matrix, return a list of
-%%% key-value pair, giving the prediction value for each key.
-%%% @see  adviserl:recommend_all/2
-%%% @spec (ratings(), ItemsMatrix, [Option]) -> predictions()
-%%% @private
-%%% @end
-predict_all(SourceRatings, ItemsMatrix, Options) ->
-    % hopefully this respect the weighted slope one algorithm
-    %fprof:trace(start),
-    Result = adv_mat_sm:map_per_partial_row(
-        fun(PartialRow=#mat_row{line=LItem}) ->
-            {Freq, Dev} = adv_ratings:fold_ratings(
-                fun(CItem, _CRating={CVal,_CData}, Acc={FreqAcc, DevAcc}) ->
-                    case LItem == CItem of
-                        true ->
-                            Acc;
-                        _ ->
-                            case LItem > CItem of
-                                true ->
-                                    case adv_mat_sm:get_partial_row_value(CItem, PartialRow) of
-                                        {ok, {RFreq, RDev}} ->
-                                            {
-                                                FreqAcc + RFreq,
-                                                DevAcc + RFreq * (RDev + CVal)
-                                            };
-                                        _ ->
-                                            Acc
-                                    end;
-                                _ ->
-                                    case adv_mat_sm:get(LItem, CItem, ItemsMatrix) of
-                                        {ok, {ARFreq, ARDev}} ->
-                                            {
-                                                FreqAcc + ARFreq,
-                                                DevAcc + ARFreq * (ARDev + CVal)
-                                            };
-                                        error ->
-                                            Acc
-                                    end
-                            end
-                    end
-                end,
-                {0, 0},
-                SourceRatings
-            ),
-            {Freq, Dev}
-        end,
-        ItemsMatrix
-    ),
-    %fprof:trace(stop),
-    format_prediction_result(Result, SourceRatings, Options).
-
-%%% @doc  Print the full matrix on debug streams.
-%%% @spec (Matrix) -> ok
-%%% @end
-print_debug(Matrix) ->
-    adv_mat_sm:fold_per_partial_row(
-        fun(Row, Acc1) ->
-            Line = adv_mat_sm:fold_per_partial_row(
-                fun(Col, Acc2) ->
-                    LN = Row#mat_row.line,
-                    CN = Col#mat_row.line,
-                    case adv_mat_sm:get(LN, CN, Matrix) of
-                        error ->
-                            io_lib:format("~s ~5B:       ", [Acc2, CN]);
-                        {ok, {F,D}} ->
-                            io_lib:format("~s ~5B:~3B,~3B", [Acc2, CN, F, D])
-                    end
-                end,
-                io_lib:format("item ~5B: ", [Row#mat_row.line]),
-                Matrix
-            ),
-            ?DEBUG("~s", [Line]),
-            Acc1
-        end,
-        ok,
-        Matrix
-    ).
-
-
-% ~~ Implementation: Internal
 
 %%% @doc  Create the datastructure to contain frequencies and deviations.
 %%% @spec () -> SkewMatrix
@@ -253,6 +238,57 @@ update_items_del({Val1, _Data1}, {Val2, _Data2}, undefined) ->
 update_items_del({Val1, _Data1}, {Val2, _Data2}, {Freq, Dev}) ->
     {Freq - 1, Dev + (Val2 - Val1)}.
 
+%%% @doc  Given a set of ratings and a items matrix, return a list of
+%%% key-value pair, giving the prediction value for each key.
+%%% @see  adviserl:recommend_all/2
+%%% @spec (ratings(), ItemsMatrix, [Option]) -> predictions()
+%%% @private
+%%% @end
+predict_all(SourceRatings, ItemsMatrix, Options) ->
+    % hopefully this respect the weighted slope one algorithm
+    %fprof:trace(start),
+    Result = adv_mat_sm:map_per_partial_row(
+        fun(PartialRow=#mat_row{line=LItem}) ->
+            {Freq, Dev} = adv_ratings:fold_ratings(
+                fun(CItem, _CRating={CVal,_CData}, Acc={FreqAcc, DevAcc}) ->
+                    case LItem == CItem of
+                        true ->
+                            Acc;
+                        _ ->
+                            case LItem > CItem of
+                                true ->
+                                    case adv_mat_sm:get_partial_row_value(CItem, PartialRow) of
+                                        {ok, {RFreq, RDev}} ->
+                                            {
+                                                FreqAcc + RFreq,
+                                                DevAcc + RFreq * (RDev + CVal)
+                                            };
+                                        _ ->
+                                            Acc
+                                    end;
+                                _ ->
+                                    case adv_mat_sm:get(LItem, CItem, ItemsMatrix) of
+                                        {ok, {ARFreq, ARDev}} ->
+                                            {
+                                                FreqAcc + ARFreq,
+                                                DevAcc + ARFreq * (ARDev + CVal)
+                                            };
+                                        error ->
+                                            Acc
+                                    end
+                            end
+                    end
+                end,
+                {0, 0},
+                SourceRatings
+            ),
+            {Freq, Dev}
+        end,
+        ItemsMatrix
+    ),
+    %fprof:trace(stop),
+    format_prediction_result(Result, SourceRatings, Options).
+
 %%% @doc  Use options to format the predictions results.
 %%% @spec ([{itemID(), {Freq::integer(), Dev::integer()}}], [rating()], [Option]) -> predictions()
 %%% @see  adviserl:recommend_all/2
@@ -280,7 +316,7 @@ format_prediction_result(Result0, Ratings, Options) ->
     {Result2, SourceRatingNumber} = case proplists:get_bool(no_remove_known, Options) of
         false ->
             adv_ratings:fold_ratings(
-                fun(ItemID, ItemRating, {Predictions, RatingNumber}) ->
+                fun(ItemID, _ItemRating, {Predictions, RatingNumber}) ->
                     %io:format("removing ~p: ~p~n", [ItemID, lists:keymember(ItemID, 1, Predictions)]),
                     {lists:keydelete(ItemID, 1, Predictions), RatingNumber + 1}
                 end,
@@ -316,6 +352,34 @@ format_prediction_result(Result0, Ratings, Options) ->
     %?DEBUG("prediction 4: ~w~n", [Result4]),
     % finally
     Result4.
+
+%%% @doc  Print the full matrix on debug streams.
+%%% @spec (Matrix) -> ok
+%%% @end
+print_debug(Matrix) ->
+    adv_mat_sm:fold_per_partial_row(
+        fun(Row, Acc1) ->
+            Line = adv_mat_sm:fold_per_partial_row(
+                fun(Col, Acc2) ->
+                    LN = Row#mat_row.line,
+                    CN = Col#mat_row.line,
+                    case adv_mat_sm:get(LN, CN, Matrix) of
+                        error ->
+                            io_lib:format("~s ~5B:       ", [Acc2, CN]);
+                        {ok, {F,D}} ->
+                            io_lib:format("~s ~5B:~3B,~3B", [Acc2, CN, F, D])
+                    end
+                end,
+                io_lib:format("item ~5B: ", [Row#mat_row.line]),
+                Matrix
+            ),
+            ?DEBUG("~s", [Line]),
+            Acc1
+        end,
+        ok,
+        Matrix
+    ).
+
 
 % ~~ Unit tests
 -ifdef(EUNIT).

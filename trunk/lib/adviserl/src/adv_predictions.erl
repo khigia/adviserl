@@ -17,27 +17,14 @@
 %===========================================================================
 %%% @author Ludovic Coquelle <lcoquelle@gmail.com>
 %%% @copyright 2007 Affle Pvt. Ltd.
-%%% @doc Management of cross-references.
+%%% @doc Interface to predictions management.
 %%%
 %%% @end
 -module(adv_predictions).
 
 
-% ~~ Declaration: OTP relative
--behaviour(gen_server).
--export([
-    init/1,         % (InitArgs) -> Result
-    handle_call/3,  % (Request, From, State) -> Result
-    handle_cast/2,  % (Request, State) -> Result
-    handle_info/2,  % (Info, State) -> Result
-    terminate/2,    % (Reason, State) -> term() % result is not used
-    code_change/3   % (OldVsn, State, Extra) -> {ok, NewState}
-]).
-
-
 % ~~ Declaration: API
 -export([
-    start_link/1,
     init/0,
     update_rating/4,
     predict_all/2
@@ -49,30 +36,21 @@
 
 % ~~ Declaration: Internal
 
--record(state, {
-    callback, % module implementing the recommender algorithm (callback module)
-    opaque    % opaque data structure of the callback module
-}).
-
 -include("include/adviserl.hrl").
 
 
 % ~~ Implementation: API
-
-%%% @doc  Start and localy register the server.
-%%% @spec ({RecommenderModule, Options}) -> {ok, Pid} | ignore | {error, Error}
-%%% @end
-start_link(Recommender) ->
-    %TODO this recommender could be passed as module parameters
-    %(this could make it faster? but is less flexible for now)
-    gen_server:start_link({local, ?MODULE}, ?MODULE, Recommender, []).
 
 %%% @doc  Init the server by reloading the whole ratings collection.
 %%% @spec () -> ok
 %%% @todo remove infinity timeout
 %%% @end
 init() ->
-    gen_server:call(?MODULE, init, infinity).
+    gen_server:call(
+        ?PREDICTIONS_PNAME,
+        init,
+        infinity
+    ).
 
 %%% @doc  Update rating influence on the recommender algorithm.
 %%% @spec (sourceID(), itemID(), NewRating::rating(), OldRatings::ratings()|undefined) -> ok
@@ -86,7 +64,7 @@ update_rating(SourceID, ItemID, NewRating, OldRatings)
         ItemID > 0
     ->
     gen_server:call(
-        ?MODULE,
+        ?PREDICTIONS_PNAME,
         {update_rating, SourceID, ItemID, NewRating, OldRatings},
         infinity
     ).
@@ -97,71 +75,22 @@ update_rating(SourceID, ItemID, NewRating, OldRatings)
 %%% @todo remove infinity timeout
 %%% @end
 predict_all(Ratings, Options) ->
-    gen_server:call(?MODULE, {predict_all, Ratings, Options}, infinity).
+    gen_server:call(
+        ?PREDICTIONS_PNAME,
+        {predict_all, Ratings, Options},
+        infinity
+    ).
 
 %%% @doc  Print the full matrix in debug mode.
 %%% @spec () -> ok
 %%% @todo remove infinity timeout
 %%% @end
 print_debug() ->
-    gen_server:call(?MODULE, print_debug, infinity).
-
-
-% ~~ Implementation: Behaviour callbacks
-
-init({RecommenderCBModule, Options}) ->
-    % only one recommender is supported: if multiple are needed, a specific
-    % callback module can be implemented, wich integrate the real recommenders
-    % (this put the merge behaviour outside of this module)
-    RecommenderCBData = RecommenderCBModule:create_state(Options),
-    State = #state{
-        callback = RecommenderCBModule,
-        opaque   = RecommenderCBData
-    },
-    {ok, State}.
-
-handle_call(
-    init,
-    _From,
-    State = #state{callback = Mod, opaque = _Data0}
-) ->
-    Data1 = Mod:load_ratings(),
-    {reply, ok, State#state{opaque = Data1}};
-handle_call(
-    {update_rating, SourceID, ItemID, NewRating, OldRatings},
-    From,
-    State = #state{callback = Mod, opaque = Data0}
-) ->
-    Data1 = Mod:update_rating(SourceID, ItemID, NewRating, OldRatings, Data0),
-    {reply, ok, State#state{opaque = Data1}};
-handle_call(
-    {predict_all, Ratings, Options},
-    _From,
-    State = #state{callback = Mod, opaque = Data0}
-) ->
-    Prediction = Mod:predict_all(Ratings, Data0, Options),
-    {reply, Prediction, State};
-handle_call(
-    print_debug,
-    _From,
-    State = #state{callback = Mod, opaque = Data0}
-) ->
-    Mod:print_debug(Data0),
-    {reply, ok, State};
-handle_call(_Request, _From, State) ->
-    {reply, ok, State}.
-
-handle_cast(_Request, State) ->
-    {noreply, State}.
-
-handle_info(_Info, State) ->
-    {noreply, State}.
-
-terminate(_Reason, _State) ->
-    ok.
-
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
+    gen_server:call(
+        ?PREDICTIONS_PNAME,
+        print_debug,
+        infinity
+    ).
 
 
 % ~~ Implementation: Internal

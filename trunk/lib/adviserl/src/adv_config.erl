@@ -26,7 +26,7 @@
 -export([
     get_ratings_behaviour/0,
     get_ratings_module/0,
-    get_recommender_behaviour/0
+    get_predictions_behaviour/0
 ]).
 
 
@@ -56,15 +56,15 @@ get_ratings_module() ->
     {Mod, _} = get_ratings_behaviour(),
     Mod.
 
-%% @spec get_recommender_behaviour() -> {Module::atom(), Options::list()}
+%% @spec get_predictions_behaviour() -> {Module::atom(), Options::list()}
 %%
 %% @doc  Get the recommender module and config from app environment.
 %%
 %% Default value is {adv_slone, []}.
 %% @see get_behaviour/1
 %% @end
-get_recommender_behaviour() ->
-    get_behaviour(recommender, {adv_slone, []}).
+get_predictions_behaviour() ->
+    get_behaviour(predictions, {adv_slone, []}).
 
 
 % ~~ Implementation: Internal
