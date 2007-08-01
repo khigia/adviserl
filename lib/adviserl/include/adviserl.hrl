@@ -24,7 +24,8 @@
 
 % Global declaration
 
--define(RATINGS_PNAME, adv_ratings).
+-define(RATINGS_PNAME,     adv_ratings).
+-define(PREDICTIONS_PNAME, adv_predictions).
 
 
 % Trace utilities

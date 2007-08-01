@@ -23,6 +23,6 @@
     ]}},
     {env, [
         {ratings,     {adv_ratings_dod, []}},
-        {recommender, {adv_slone, []}}
+        {predictions, {adv_slone, []}}
     ]}
 ]}.

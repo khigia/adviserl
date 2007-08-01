@@ -85,33 +85,48 @@ init(_Args) ->
         worker,
         [adv_sources, adv_data]
     },
-    % ratings' module come from application environment,
+    % TODO ratings' module come from application environment,
     % next step will be to overwrite this config with option given
     % at start time ;) and even the possibility to change at run time
     % and this could be used to make persistent backup of a running ratings
     % in memory (from dod to dets for example)
     RatingBehaviour = adv_config:get_ratings_behaviour(),
     {RatingsMod, RatingsModArgs} = RatingBehaviour,
-    ?INFO("ratings configuration: ~w", [RatingBehaviour]),
+    ?INFO("ratings' module configuration: ~w", [RatingBehaviour]),
     Ratings = {
         adv_ratings,
         {
             gen_server,
             start_link,
-            [{local,?RATINGS_PNAME}, RatingsMod, RatingsModArgs, []]
+            [{local, ?RATINGS_PNAME}, RatingsMod, RatingsModArgs, []]
         },
         permanent,
         5000,
         worker,
         [RatingsMod]
     },
+    % TODO predictions' module come from application environment,
+    % next step will be to overwrite this config with option given
+    % at start time ;) and even the possibility to change at run time
+    % and this could be used to make persistent backup of predictions' data
+    % in memory (from matrix to dets for example)
+    PredBehaviour = adv_config:get_predictions_behaviour(),
+    {PredMod, PredModArgs} = PredBehaviour,
+    ?INFO("predictions' module configuration: ~w", [PredBehaviour]),
+    % only one recommender is supported: if multiple are needed, a specific
+    % gen_server module can be implemented, which integrate multiple
+    % recommender algorithms as well as a merging mechanism.
     Predictions = {
         adv_predictions,
-        {adv_predictions, start_link, [adv_config:get_recommender_behaviour()]},
+        {
+            gen_server,
+            start_link,
+            [{local, ?PREDICTIONS_PNAME}, PredMod, PredModArgs, []]
+        },
         permanent,
         5000,
         worker,
-        [adv_predictions]
+        [PredMod]
     },
     % supervisor policy
     {ok, {
