@@ -22,6 +22,11 @@
 %%% @end
 
 
+% Global declaration
+
+-define(RATINGS_PNAME, adv_ratings).
+
+
 % Trace utilities
 
 -ifdef(LOG_DEBUG).
