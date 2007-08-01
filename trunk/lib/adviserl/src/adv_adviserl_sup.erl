@@ -85,6 +85,11 @@ init(_Args) ->
         worker,
         [adv_sources, adv_data]
     },
+    % ratings' module come from application environment,
+    % next step will be to overwrite this config with option given
+    % at start time ;) and even the possibility to change at run time
+    % and this could be used to make persistent backup of a running ratings
+    % in memory (from dod to dets for example)
     RatingBehaviour = adv_config:get_ratings_behaviour(),
     {RatingsMod, RatingsModArgs} = RatingBehaviour,
     ?INFO("ratings configuration: ~w", [RatingBehaviour]),
