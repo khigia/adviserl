@@ -26,6 +26,8 @@
 % ~~ Declaration: API
 -export([
     start_link/0,
+    load_file/2,
+    save_file/2,
     insert_new/2,
     id_from_key/1,
     object_from_key/1,
@@ -46,6 +48,20 @@
 %%% @end
 start_link() ->
     gen_server:start_link({local, ?MODULE}, adv_data, ?MODULE, []).
+
+load_file(File, Options) ->
+    gen_server:call(
+        ?MODULE,
+        {load_file, File, Options}
+    ),
+    ?INFO("file loaded", []).
+
+save_file(File, Options) ->
+    gen_server:call(
+        ?MODULE,
+        {save_file, File, Options}
+    ),
+    ?INFO("file saved", []).
 
 insert_new(Key, Data) ->
     gen_server:call(

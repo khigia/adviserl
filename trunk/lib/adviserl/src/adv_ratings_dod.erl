@@ -17,7 +17,7 @@
 %===========================================================================
 %%% @copyright 2007 Affle Pvt. Ltd.
 %%% @author Ludovic Coquelle <lcoquelle@gmail.com>
-%%% @doc Dict-of-dict storage of ratings: M(Source) => N(Item) => rating.
+%%% @doc Dict-of-dict storage of ratings: SourceID => ItemID => rating.
 %%%
 %%% Refer to {@link adv_types} for type definitions.
 %%%
@@ -118,6 +118,27 @@ init(_InitArgs) ->
         ratings = init_ratings()
     },
     {ok, State}.
+
+handle_call({load_file, File, _Options}, _From, State) ->
+    case file:consult(File) of
+        {ok, [Ratings]} ->
+            {reply, ok, State#state{ratings = Ratings}};
+        {ok, [_|_]} ->
+            {reply, {error, "Bad file format."}, State};
+        Err1 ->
+            {reply, Err1, State}
+    end;
+
+handle_call({save_file, File, _Options}, _From, State) ->
+    case file:open(File, [write]) of
+        {ok, IODev} ->
+            Ratings = State#state.ratings,
+            io:fwrite(IODev, "~w.", [Ratings]),
+            file:close(IODev),
+            {reply, ok, State};
+        Err1 ->
+            {reply, Err1, State}
+    end;
 
 handle_call({set_rating, SourceID, ItemID, Rating}, _From, State) ->
     AllRatings = set_rating(SourceID, ItemID, Rating, State#state.ratings),

@@ -26,7 +26,8 @@
 -export([
     get_ratings_behaviour/0,
     get_ratings_module/0,
-    get_predictions_behaviour/0
+    get_predictions_behaviour/0,
+    get_data_files_spec/0
 ]).
 
 
@@ -60,18 +61,29 @@ get_ratings_module() ->
 %%
 %% @doc  Get the recommender module and config from app environment.
 %%
-%% Default value is {adv_slone, []}.
+%% Default value is {adv_slone_smdod, []}.
 %% @see get_behaviour/1
 %% @end
 get_predictions_behaviour() ->
-    get_behaviour(predictions, {adv_slone, []}).
+    get_behaviour(predictions, {adv_slone_smdod, []}).
 
+%% @spec get_data_files_spec() -> {ok, Spec} | {error, Reason}
+%%
+%% @doc  Get the files spec from app environment.
+get_data_files_spec() ->
+    case application:get_env(adviserl, data_files) of
+        R = {ok, {_Items, _Source, _Ratings, _Predictions, _Options}} ->
+            R;
+        Any ->
+            {error, "Key 'data_files' not found in app config"}
+    end.
+            
 
 % ~~ Implementation: Internal
 
 %% @spec get_behaviour(Key::atom(), Default::{atom(),list()}) -> {Module::atom(), Options::list()}
 %%
-%% @doc  Get a module and config for a given Key in app environment.
+%% @doc  Get/set a module and config for a given Key in app environment.
 %%
 %% Return the tuple {Mod, Args} configured by key 'Key'. 'Mod' is the
 %% (gen_server) module to be used, 'Args' is a list of arguments given when
