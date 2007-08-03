@@ -45,7 +45,9 @@
     update_partial_row_value/4,
     fold_per_partial_row/3,
     fold_partial_row/3,
-    map_per_partial_row/2
+    map_per_partial_row/2,
+    get_internal_data/1,
+    set_internal_data/2
 ]).
 
 
@@ -126,6 +128,12 @@ fold_per_partial_row(Fun, Accumulator, M) ->
 
 map_per_partial_row(Fun, M) ->
     ?MAT:map_per_row(Fun, M#sm.m).
+
+get_internal_data(#sm{m=Data}) ->
+    Data.
+
+set_internal_data(Data, M=#sm{}) ->
+    M#sm{m=Data}.
 
 % ~~ Implementation: Behaviour callbacks
 

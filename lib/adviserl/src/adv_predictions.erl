@@ -25,6 +25,8 @@
 
 % ~~ Declaration: API
 -export([
+    load_file/2,
+    save_file/2,
     init/0,
     update_rating/4,
     predict_all/2
@@ -40,6 +42,22 @@
 
 
 % ~~ Implementation: API
+
+load_file(File, Options) ->
+    gen_server:call(
+        ?PREDICTIONS_PNAME,
+        {load_file, File, Options},
+        infinity
+    ),
+    ?INFO("file loaded", []).
+
+save_file(File, Options) ->
+    gen_server:call(
+        ?PREDICTIONS_PNAME,
+        {save_file, File, Options},
+        infinity
+    ),
+    ?INFO("file saved", []).
 
 %%% @doc  Init the server by reloading the whole ratings collection.
 %%% @spec () -> ok

@@ -22,7 +22,7 @@
 %%% This module provide convenience functions to call the ratings gen_server.
 %%% Furthermore it provides functions to manipulate some data types (but those
 %%% function may be avoided for performance reason because they have to
-%%% lookup each time the gen_server module).
+%%% lookup each time for the gen_server module name).
 %%%
 %%% Refer to {@link adv_types} for type definitions.
 %%% @end
@@ -32,6 +32,8 @@
 % ~~ Declaration: API
 -export([
     % ratings interface
+    load_file/2,
+    save_file/2,
     get_ratings/1,
     get_rating/2,
     set_rating/3,
@@ -53,6 +55,22 @@
 
 
 % ~~ Implementation: API
+
+load_file(File, Options) ->
+    gen_server:call(
+        ?RATINGS_PNAME,
+        {load_file, File, Options},
+        infinity
+    ),
+    ?INFO("file loaded", []).
+
+save_file(File, Options) ->
+    gen_server:call(
+        ?RATINGS_PNAME,
+        {save_file, File, Options},
+        infinity
+    ),
+    ?INFO("file saved", []).
 
 %%% @spec get_ratings(sourceID()) -> {ok, ratings()}|undefined
 %%%

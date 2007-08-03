@@ -17,11 +17,11 @@
 %===========================================================================
 %%% @author Ludovic Coquelle <lcoquelle@gmail.com>
 %%% @copyright 2007 Affle Pvt. Ltd.
-%%% @doc Slope-One covisitation recommender callback for adviserl.
+%%% @doc Slope-One using dict-of-dict skewmatrix in memory storage.
 %%% @reference <a href="http://www.daniel-lemire.com/fr/abstracts/SDM2005.html">Daniel Lemire publication, 2005.</a>
 %%%
 %%% @end
--module(adv_slone).
+-module(adv_slone_smdod).
 
 
 % ~~ Declaration: OTP relative
@@ -63,12 +63,44 @@ init(_InitArgs) ->
     {ok, State}.
 
 handle_call(
+    {load_file, File, _Options},
+    _From,
+    State=#st{matrix = Matrix1}
+) ->
+    case file:consult(File) of
+        {ok, [Data]} ->
+            Matrix2 = adv_mat_sm:set_internal_data(Data, Matrix1),
+            {reply, ok, State#st{matrix = Matrix2}};
+        {ok, [_|_]} ->
+            {reply, {error, "Bad file format."}, State};
+        Err1 ->
+            {reply, Err1, State}
+    end;
+
+handle_call(
+    {save_file, File, _Options},
+    _From,
+    State
+) ->
+    case file:open(File, [write]) of
+        {ok, IODev} ->
+            Matrix = State#st.matrix,
+            Data = adv_mat_sm:get_internal_data(Matrix),
+            io:fwrite(IODev, "~w.", [Data]),
+            file:close(IODev),
+            {reply, ok, State};
+        Err1 ->
+            {reply, Err1, State}
+    end;
+
+handle_call(
     init,
     _From,
     State = #st{}
 ) ->
     M = load_ratings(),
     {reply, ok, State#st{matrix = M}};
+
 handle_call(
     {update_rating, SourceID, ItemID, NewRating, OldRatings},
     _From,
@@ -76,6 +108,7 @@ handle_call(
 ) ->
     Data1 = update_rating(SourceID, ItemID, NewRating, OldRatings, Data0),
     {reply, ok, State#st{matrix = Data1}};
+
 handle_call(
     {predict_all, Ratings, Options},
     _From,
@@ -83,6 +116,7 @@ handle_call(
 ) ->
     Prediction = predict_all(Ratings, Data0, Options),
     {reply, Prediction, State};
+
 handle_call(
     print_debug,
     _From,
@@ -90,6 +124,7 @@ handle_call(
 ) ->
     print_debug(Data0),
     {reply, ok, State};
+
 handle_call(_Request, _From, State) ->
     {reply, unknow_call_request, State}.
 

@@ -59,6 +59,43 @@ init(TableName) ->
         next = 1
     }}.
 
+handle_call({load_file, File, _Options}, _From, State) ->
+    case dets:open_file(list_to_atom(File), [{file, File}]) of
+        {ok, Dets} ->
+            TID = State#st.tid,
+            ets:delete_all_objects(TID),
+            ets:from_dets(TID, Dets),
+            dets:close(Dets),
+            {Idx, Cur} = ets:foldl(
+                fun({ID, Key, _Data}, {Tree, Pos}) ->
+                    {
+                        gb_trees:enter(ID, Key, Tree),
+                        lists:max([Pos, ID + 1])
+                    }
+                end,
+                {gb_trees:empty(), 1},
+                TID
+            ),
+            {reply, ok, State#st{index=Idx, next=Cur}};
+        Err1 ->
+            {reply, Err1, State}
+    end;
+handle_call({save_file, File, _Options}, _From, State) ->
+    file:delete(File),
+    case dets:open_file(list_to_atom(File), [{file, File}]) of
+        {ok, Dets} ->
+            TID = State#st.tid,
+            case dets:from_ets(Dets, TID) of
+                ok ->
+                    dets:close(Dets),
+                    {reply, ok, State};
+                Err2 ->
+                    dets:close(Dets),
+                    {reply, Err2, State}
+            end;
+        Err1 ->
+            {reply, Err1, State}
+    end;
 handle_call({insert_new, Key, Data}, _From, State) ->
     TID = State#st.tid,
     Idx = State#st.index,

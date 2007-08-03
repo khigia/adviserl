@@ -40,13 +40,13 @@ all: prodbuild doc
 .PHONY : prodbuild
 prodbuild: subtargets_build
 	@echo "==== Compiling application ===="
-	${CMD_ERL} -noshell ${ERLPATH} -eval 'make:all([${BUILDOPT_PROD}])' -s erlang halt
+	${CMD_ERL} -noshell ${ERLPATH} -eval 'make:all([${BUILDOPT_PROD}])' -s init stop
 	@echo
 
 .PHONY : doc
 doc:
 	@echo "==== Compiling documentation ===="
-	${CMD_ERL} -noshell ${ERLPATH} -eval 'edoc:application(${APPNAME}, ".", [${DOCOPT}]).' -s erlang halt
+	${CMD_ERL} -noshell ${ERLPATH} -eval 'edoc:application(${APPNAME}, ".", [${DOCOPT}]).' -s init stop
 	@echo
 
 
@@ -58,13 +58,13 @@ dev: devbuild test checks doc
 .PHONY : logs
 logs:
 	@echo "==== Extracting logs ===="
-	${CMD_ERL} -noshell ${ERLPATH} -boot start_sasl -eval "rb:start([{report_dir, \"./log/\"}]), rb:show()." -s erlang halt
+	${CMD_ERL} -noshell ${ERLPATH} -boot start_sasl -eval "rb:start([{report_dir, \"./log/\"}]), rb:show()." -s init stop
 	@echo
 
 .PHONY : devbuild
 devbuild: subtargets_build
 	@echo "==== Compiling application ===="
-	${CMD_ERL} -noshell ${ERLPATH} -eval "make:all([${BUILDOPT_DEV}])" -s erlang halt
+	${CMD_ERL} -noshell ${ERLPATH} -eval "make:all([${BUILDOPT_DEV}])" -s init stop
 	@echo
 
 .PHONY : test
@@ -87,7 +87,7 @@ test: devbuild
 			end,\
 			[]\
 		)." \
-		-s erlang halt
+		-s init stop
 	@echo
 
 .PHONY : checks
@@ -96,7 +96,7 @@ checks: xref dialyzer cover
 .PHONY : xref
 xref:
 	@echo "==== Checking code: xref ===="
-	${CMD_ERL} -noshell ${ERLPATH} -eval 'io:format("~p~n", [xref:d("ebin")]).' -s erlang halt
+	${CMD_ERL} -noshell ${ERLPATH} -eval 'io:format("~p~n", [xref:d("ebin")]).' -s init stop
 	@echo
 
 .PHONY : dialyzer

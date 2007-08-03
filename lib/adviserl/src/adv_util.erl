@@ -25,6 +25,7 @@
 % ~~ Declaration: API
 -export([
     log/5,
+    locate_files/2,
     for_seq/3,
     for_seq/4
 ]).
@@ -83,6 +84,34 @@ log(Module, Line, err, Msg, Params) ->
         [Module, Line] ++ Params
     ).
 
+%% @spec locate_files([File], [Option]) -> {ok, [AbsFile]}|{error,Reason}
+%%     File = {relative_file, Filename::string()} |
+%%            {absolute_file, Filename::string()}
+%%     Option = {dir, Path::string()}
+%%
+%% @doc Locate all files or return error.
+locate_files(Files, Options) ->
+    case locate_dir(Options) of
+        Err1 = {error, _} ->
+            Err1;
+        Path ->
+            lists:foldl(
+                fun
+                    (_File, Err2 = {error, _Reason}) ->
+                        Err2;
+                    (File, {ok, Acc}) ->
+                        case locate_file(File, Path) of
+                            Err3 = {error, _} ->
+                                Err3;
+                            AbsFile ->
+                                {ok, Acc ++ [AbsFile]}
+                        end
+                end,
+                {ok, []},
+                Files
+            )
+    end.
+
 %%% @doc  Apply a function on a sequence of items.
 %%% Equiv for_seq(Body, Start, End, 1)
 %%% @spec (BodyFun, Start, End) -> ok
@@ -106,5 +135,65 @@ for_seq(Body, Start, End, Incr) ->
     end.
 
 % ~~ Implementation: Internal
-%empty
+
+%% @spec locate_dir([Option]) -> Dir::string() | {error, Reason}
+%%     Option = {dir, Dir::string()}
+%% @doc Find absolute dir name and ensure it exists.
+locate_dir(Options) ->
+    case proplists:get_value(dir, Options) of
+        undefined ->
+            case file:get_cwd() of
+                {ok, Dir} ->
+                    ensure_absdir(Dir);
+                _ ->
+                    {error, "No specified folder and CWD not accessible."}
+            end;
+        Dir2 ->
+            ensure_absdir(Dir2)
+    end.
+
+ensure_absdir(Dir) ->
+    AbsDir = filename:absname(Dir),
+    case filelib:ensure_dir(AbsDir) of
+        ok ->
+            AbsDir;
+        {error, Reason} ->
+            {error, io_lib:format(
+                "Directory '~s' not accessible: ~w",
+                [AbsDir, Reason]
+            )}
+    end.
+
+%% @spec locate_file(File, Path::string()) -> Absfile::string()|{error,Reason}
+%%     File = {relative_file, Filename::string()} |
+%%            {absolute_file, Filename::string()}
+%% @doc Find file, ensure dir exists and file writable (create it if needed).
+locate_file({relative_file, File}, Path) ->
+    locate_file({absolute_file, filename:join(Path, File)}, Path);
+locate_file({absolute_file, File}, _Path) ->
+    case filelib:ensure_dir(File) of
+        ok ->
+            case file:open(File, [read, write]) of
+                {ok, IODev} ->
+                    case file:close(IODev) of
+                        ok ->
+                            File;
+                        {error, Reason3} ->
+                            {error, io_lib:format(
+                                "Opened file '~s' can not be closed: ~w",
+                                [File, Reason3]
+                            )}
+                    end;
+                {error, Reason2} ->
+                    {error, io_lib:format(
+                        "File '~s' can not be open (rw): ~w",
+                        [File, Reason2]
+                    )}
+            end;
+        {error, Reason1} ->
+            {error, io_lib:format(
+                "Cannot ensure directory for '~s': ~w",
+                [File, Reason1]
+            )}
+    end.
 
