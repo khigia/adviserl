@@ -1,32 +1,10 @@
-#summary More a TODO list than a real roadmap...
- * Deployment / build
-     * ? sinan build system ... create dependancy with a repository?
-     * ? CEAN packaging
-     * look at some windows/mac build system (see with sinan)
- * Documentation
-     * document scripts in bin folder
-     * examples / testing
-         * API examples
-         * example/API/plugin(?) to clean the ratings with a given timestamp too old (use example of rating data)
-         * example of using MySQL and some reporting data (how to implement a realtime callback?)
- * API
-     * Internal
-         * provide an alias API for sourceID and/or itemID, and in the same time this will provide framework for content-based recommendation algo: add a module adv_sources to maintain source (user) data, add adv_items to maintain item data (good time to test ETS or mnesia?)
-         * add possibility to update some ratings witout updating the items, and the items in one time afterward (see example load which call directly adv_ratings and adv_items)
-     * External
-         * configuration of callback module (for adv_prediction) could be set in application environment (dynamic plugin needed?)
-         * add some options to bin/adv-recommendall-source [-n api_node] [--sorted] [-n 5] 12 => print 2 numbers (itemID and score) by line
-         * python interface to talk with adviserl_api (http://www.lysator.liu.se/~tab/erlang/py_interface)
-         * HTTP interface (yaws/inets or see http://wiki.trapexit.org/index.php/A_fast_web_server_demonstrating_some_undocumented_Erlang_features)
- * Implementation / performance / algorithm
-     * all data are stored in memory: persistence backend is clearly needed.
-         * ratings could use ets/dets (what about using qlc?); mnesia could allow a partition of data
-         * adv_ratings could use a callback module like adv_items to provides different backend (dictionary, ETS, mnesia)?
-         * adv_items could use ets or mnesia with copy ... this has to be delegated in the callback module because each module need its own data (not all have a matrix form)
-     * what about distributed collaborative filtering?
-     * algorithm parallelism:
-         * if prediction is a matrix base operation ... can be distributed (at least by group of lines)
-         * building the matrix (init) can also be parallel
-     * adv_slone:predict_all read the whole matrix: should be able to read only lines for which source has there is at least one rating value! : recommend_n (for all rows, look at N columns), need a fast way to get few recommendations (for the N rows, score by columns), recommend_one ...
-     * lot of missing unit-test, especially inadv_slone (should validate algorithm, and manipulation like update)
-     * implementation of adviserl:update_rating is not optimal: it undo all itemss for one user, then redo with the new value; it could only change what is relative to the updated item.
+#summary Roadmap of features
+
+Objective of this document: attempt to organize where adviserl is going.
+(See ToDo for more details on what has to be done).
+
+ * Mnesia for all data management
+ * OTP release / package distribution
+ * Distributed application
+ * Data distribution
+ * Algorithm distribution

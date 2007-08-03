@@ -5,6 +5,8 @@ Personal pages
 
 Blogs
  * Selected posts
+   * [http://sifter.org/%7Esimon/journal/20061211.html A Netflix leader make a simple explanation of the algorithm (SVD)], with lot of details on what problems (algorithm and data).
+   * [http://www.timelydevelopment.com/Demos/NetflixPrize.htm Another Netflix solution description similar to previous one]
    * [http://glinden.blogspot.com/2007/07/attacking-recommender-systems.html About spamming a recommender system]
  * [http://glinden.blogspot.com Geeking with Greg - exploring the future of personalized information]
  * [http://khigia.wordpress.com/tag/recommender/ khi's life with an ech]
