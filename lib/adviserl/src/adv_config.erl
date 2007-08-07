@@ -24,6 +24,8 @@
 
 % ~~ Declaration: API
 -export([
+    get_sources_behaviour/0,
+    get_items_behaviour/0,
     get_ratings_behaviour/0,
     get_ratings_module/0,
     get_predictions_behaviour/0,
@@ -37,6 +39,26 @@
 
 
 % ~~ Implementation: API
+
+%% @spec get_sources_behaviour() -> {Module::atom(), Options::list()}
+%%
+%% @doc  Get the sources module and config from app environment.
+%%
+%% Default value is {adv_data_ets, [adv_sources]}.
+%% @see get_behaviour/1
+%% @end
+get_sources_behaviour() ->
+    get_behaviour(sources, {adv_data_ets, [adv_sources]}).
+
+%% @spec get_items_behaviour() -> {Module::atom(), Options::list()}
+%%
+%% @doc  Get the items module and config from app environment.
+%%
+%% Default value is {adv_data_ets, [adv_items]}.
+%% @see get_behaviour/1
+%% @end
+get_items_behaviour() ->
+    get_behaviour(items, {adv_data_ets, [adv_items]}).
 
 %% @spec get_ratings_behaviour() -> {Module::atom(), Options::list()}
 %%
