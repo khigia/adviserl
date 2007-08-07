@@ -1,0 +1,130 @@
+Thanks to CK for those scripts!
+(when not working with git it really do help a lot)
+
+Instructions for using the svnmerge, svn-branch2trunk, svn-branch2trunk-diff, svn-trunk2branch, svn-trunk2-branch-diff, svn-create-branch tools.
+
+== EXAMPLE
+
+1. Create a branch (R1). 
+2. Make changes to trunk.
+3. Update R1 with changes from trunk.
+4. Make changes to R1
+5. Update trunk with changes from R1.
+
+= START STATE
+    demouser@demohost:~/svn/repos1/trunk$ ls
+    README                   svn-create-branch  svn-trunk2branch-dryrun
+    svn-branch2trunk         svnmerge
+    svn-branch2trunk-dryrun  svn-trunk2branch
+    demouser@demohost:~/svn/repos1/trunk$ ls ../branches/
+    demouser@demohost:~/svn/repos1/trunk$ export PATH=`pwd`:$PATH 
+
+= 1. CREATE BRANCH
+    demouser@demohost:~/svn/repos1/trunk$ svn-create-branch ../branches/R1
+    CREATE branch:
+     /home/demouser/svn/repos1/trunk/../branches/R1
+    FROM trunk:
+     /home/demouser/svn/repos1/trunk
+    CTRL-C to abort, Enter to proceed.
+    
+    A         /home/demouser/svn/repos1/branches/R1
+    Adding         branches/R1
+    
+    Committed revision 36.
+    property 'svnmerge-integrated' set on '.'
+    
+    Sending        trunk
+    
+    Committed revision 37.
+    property 'svnmerge-integrated' set on '.'
+    
+    Sending        R1
+    
+    Committed revision 38.
+
+= 2. CHANGES TO TRUNK
+    demouser@demohost:~/svn/repos1/trunk$ cat > README
+    this is the new README from trunk
+    
+    --
+    demouser
+    demouser@demohost:~/svn/repos1/trunk$ svn commit -m 'changes to README'
+    Sending        trunk/README
+    Transmitting file data .
+    Committed revision 39.
+
+= 3. UPDATE BRANCH WITH TRUNK CHANGES
+    demouser@demohost:~/svn/repos1/trunk$ cd ../branches/R1
+    demouser@demohost:~/svn/repos1/branches/R1$ svn-trunk2branch
+    MERGE trunk CHANGES:
+     ../../trunk
+    INTO branch:
+     /home/demouser/svn/repos1/branches/R1
+    CTRL-C to abort, Enter to proceed.
+    
+    At revision 39.
+    svn propset "svnmerge-integrated" -F "/tmp/tmpY-arnF" "."
+    property 'svnmerge-integrated' set on '.'
+    
+    svn merge -r 38:39 file:///home/demouser/tests/repos1/trunk .
+    U    README
+    
+    svn propset "svnmerge-integrated" -F "/tmp/tmp6GuJem" "."
+    property 'svnmerge-integrated' set on '.'
+    
+    To commit this merge, execute:
+     svn commit -F svnmerge-commit-message.txt && rm svnmerge-commit-message.txt
+    demouser@demohost:~/svn/repos1/branches/R1$ cat README
+    this is the new README from trunk
+    
+    --
+    demouser
+    demouser@demohost:~/svn/repos1/branches/R1$ svn commit -F svnmerge-commit-    message.txt && rm svnmerge-commit-message.txt
+    Sending        R1
+    Sending        R1/README
+    Transmitting file data .
+    Committed revision 40.
+
+= 4. BRANCH CHANGES
+    demouser@demohost:~/svn/repos1/branches/R1$ cat >> README
+    
+    branch changes can go back to TRUNK as well
+    demouser@demohost:~/svn/repos1/branches/R1$ svn commit -m 'changes from R1'
+    Sending        R1/README
+    Transmitting file data .
+    Committed revision 41.
+    demouser@demohost:~/svn/repos1/branches/R1$ cd -
+    /home/demouser/svn/repos1/trunk
+    demouser@demohost:~/svn/repos1/trunk$ svn-branch2trunk ../branches/R1
+    MERGE branch CHANGES:
+     /home/demouser/svn/repos1/trunk/../branches/R1
+    INTO trunk:
+     /home/demouser/svn/repos1/trunk
+    CTRL-C to abort, Enter to proceed.
+    
+    At revision 41.
+    svn propset "svnmerge-integrated" -F "/tmp/tmp-iCtB8" "."
+    property 'svnmerge-integrated' set on '.'
+    
+    svn merge -r 40:41 file:///home/demouser/tests/repos1/branches/R1 .
+    U    README
+    
+    svn propset "svnmerge-integrated" -F "/tmp/tmpOM641-" "."
+    property 'svnmerge-integrated' set on '.'
+    
+    To commit this merge, execute:
+     svn commit -F svnmerge-commit-message.txt && rm svnmerge-commit-message.txt
+    demouser@demohost:~/svn/repos1/trunk$ svn commit -F svnmerge-commit-messag    e.txt && rm svnmerge-commit-message.txt
+    Sending        trunk
+    Sending        trunk/README
+    Transmitting file data .
+    Committed revision 42.
+    
+== NOTES
+
+svn-create-branch and svn-branch2trunk can only be run in a trunk directory.
+
+svn-trunk2branch can only be run outside of trunk directory 
+    (defaults to ../../trunk as the path to trunk)
+
+svnmerge is taken from http://www.orcaware.com/svn/wiki/index.php/Svnmerge.py#Downloads
