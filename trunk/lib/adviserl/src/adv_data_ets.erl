@@ -17,10 +17,10 @@
 %===========================================================================
 %%% @copyright 2007 Affle Pvt. Ltd.
 %%% @author Ludovic Coquelle <lcoquelle@gmail.com>
-%%% @doc Store and manage data with integer key.
+%%% @doc Store object in ETS: objects have 1 external key and one integer key.
 %%%
 %%% @end
--module(adv_data).
+-module(adv_data_ets).
 
 
 % ~~ Declaration: OTP relative
@@ -52,7 +52,7 @@
 
 % ~~ Implementation: Behaviour callbacks
 
-init(TableName) ->
+init([TableName]) ->
     {ok, #st{
         tid = ets:new(TableName, [set, {keypos,2}]),
         index = gb_trees:empty(),

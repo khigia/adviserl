@@ -69,27 +69,36 @@ init(_Args) ->
         worker,
         [adv_api]
     },
+    ItemBehaviour = adv_config:get_items_behaviour(),
+    {ItemsMod, ItemsModArgs} = ItemBehaviour,
+    ?INFO("items' module configuration: ~w", [ItemBehaviour]),
     Items = {
         adv_items,
-        {adv_items, start_link, []},
+        {
+            gen_server,
+            start_link,
+            [{local, ?ITEMS_PNAME}, ItemsMod, ItemsModArgs, []]
+        },
         permanent,
         5000,
         worker,
-        [adv_items, adv_data]
+        [ItemsMod]
     },
+    SourceBehaviour = adv_config:get_sources_behaviour(),
+    {SourcesMod, SourcesModArgs} = SourceBehaviour,
+    ?INFO("sources' module configuration: ~w", [SourceBehaviour]),
     Sources = {
         adv_sources,
-        {adv_sources, start_link, []},
+        {
+            gen_server,
+            start_link,
+            [{local, ?SOURCES_PNAME}, SourcesMod, SourcesModArgs, []]
+        },
         permanent,
         5000,
         worker,
-        [adv_sources, adv_data]
+        [SourcesMod]
     },
-    % TODO ratings' module come from application environment,
-    % next step will be to overwrite this config with option given
-    % at start time ;) and even the possibility to change at run time
-    % and this could be used to make persistent backup of a running ratings
-    % in memory (from dod to dets for example)
     RatingBehaviour = adv_config:get_ratings_behaviour(),
     {RatingsMod, RatingsModArgs} = RatingBehaviour,
     ?INFO("ratings' module configuration: ~w", [RatingBehaviour]),
@@ -105,11 +114,6 @@ init(_Args) ->
         worker,
         [RatingsMod]
     },
-    % TODO predictions' module come from application environment,
-    % next step will be to overwrite this config with option given
-    % at start time ;) and even the possibility to change at run time
-    % and this could be used to make persistent backup of predictions' data
-    % in memory (from matrix to dets for example)
     PredBehaviour = adv_config:get_predictions_behaviour(),
     {PredMod, PredModArgs} = PredBehaviour,
     ?INFO("predictions' module configuration: ~w", [PredBehaviour]),

@@ -216,7 +216,7 @@ recommend_all(RatingValues, Options) when is_list(RatingValues), is_list(Options
 start(_StartType, _StartArgs) ->
     % run the main supervisor
     Status = adv_adviserl_sup:start_link(),
-    load_files(),
+    %load_files(),
     Status.
 
 prep_stop(State) ->

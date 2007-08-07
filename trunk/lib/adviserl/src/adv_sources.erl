@@ -25,7 +25,6 @@
 
 % ~~ Declaration: API
 -export([
-    start_link/0,
     load_file/2,
     save_file/2,
     insert_new/2,
@@ -42,12 +41,6 @@
 
 
 % ~~ Implementation: API
-
-%%% @doc  Start server localy registered.
-%%% @see  gen_server:start_link/4
-%%% @end
-start_link() ->
-    gen_server:start_link({local, ?MODULE}, adv_data, ?MODULE, []).
 
 load_file(File, Options) ->
     gen_server:call(
