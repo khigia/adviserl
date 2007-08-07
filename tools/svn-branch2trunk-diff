@@ -1,0 +1,22 @@
+#!/bin/bash
+
+TRUNK=`pwd`
+BRANCH=$TRUNK/$1
+. `dirname $0`/svnmerge-setup.sh
+# sets up PWD_IS_TRUNK and TRUNK_IS_MODIFIED
+
+if test -z "$PWD_IS_TRUNK"
+then
+    echo Please execute this in trunk directory
+    exit 1
+fi
+        
+if test -z "$1"
+then
+    echo "Usage: $0 [branch path]"
+    echo ""
+    echo "  e.g. $0 ../branches/release1"
+    exit 1
+fi
+
+svnmerge avail -bd -S $BRANCH
