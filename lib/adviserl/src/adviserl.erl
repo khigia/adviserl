@@ -220,7 +220,7 @@ start(_StartType, _StartArgs) ->
     Status.
 
 prep_stop(State) ->
-    save_files(),
+    %save_files(),
     State.
 
 %%% @doc  Stop the OTP application.
