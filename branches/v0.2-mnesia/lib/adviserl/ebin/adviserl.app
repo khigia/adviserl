@@ -1,6 +1,6 @@
 {application, adviserl, [
     {description, "Recommender system."},
-    {vsn, "0.1"},
+    {vsn, "0.2"},
     {modules, [
         adv_adviserl_sup,
         adv_items,

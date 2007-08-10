@@ -24,6 +24,7 @@
 
 % ~~ Declaration: API
 -export([
+    get_mnesia_config/0,
     get_sources_behaviour/0,
     get_items_behaviour/0,
     get_ratings_behaviour/0,
@@ -39,6 +40,12 @@
 
 
 % ~~ Implementation: API
+
+%% @spec get_mnesia_config() -> PropertyList
+get_mnesia_config() ->
+    [
+        {dir, "./data/mnesia-adviserl"}
+    ].
 
 %% @spec get_sources_behaviour() -> {Module::atom(), Options::list()}
 %%
@@ -96,7 +103,7 @@ get_data_files_spec() ->
     case application:get_env(adviserl, data_files) of
         R = {ok, {_Items, _Source, _Ratings, _Predictions, _Options}} ->
             R;
-        Any ->
+        _Any ->
             {error, "Key 'data_files' not found in app config"}
     end.
             
