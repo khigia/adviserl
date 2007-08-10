@@ -30,6 +30,21 @@
 -define(PREDICTIONS_PNAME, adv_predictions).
 
 
+% Data structures
+
+-record(advsrc, {
+    id,
+    key,
+    data
+}).
+
+-record(advitm, {
+    id,
+    key,
+    data
+}).
+
+
 % Trace utilities
 
 -ifdef(LOG_DEBUG).
