@@ -61,14 +61,10 @@ start_link() ->
 %%% @see  supervisor:init/1
 %%% @end
 init(_Args) ->
-    API = {
-        adv_api,
-        {adv_api, start_link, []},
-        permanent,
-        5000,
-        worker,
-        [adv_api]
-    },
+    % no need for a process to init mnesia (and don't no how to include it)
+    MnesiaConfig = adv_config:get_mnesia_config(),
+    ok = adv_mnesia:init(MnesiaConfig),
+    % 4 servers for the system
     ItemBehaviour = adv_config:get_items_behaviour(),
     {ItemsMod, ItemsModArgs} = ItemBehaviour,
     ?INFO("items' module configuration: ~w", [ItemBehaviour]),
@@ -132,10 +128,21 @@ init(_Args) ->
         worker,
         [PredMod]
     },
+    API = {
+        adv_api,
+        {adv_api, start_link, []},
+        permanent,
+        5000,
+        worker,
+        [adv_api]
+    },
     % supervisor policy
     {ok, {
         {one_for_all, 2, 5},
-        [API, Items, Sources, Ratings, Predictions]
+        [
+            Items, Sources, Ratings, Predictions,
+            API
+        ]
     }}.
 
 
