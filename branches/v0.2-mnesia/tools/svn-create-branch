@@ -1,0 +1,45 @@
+#!/bin/bash
+
+TRUNK=`pwd`
+BRANCH=$TRUNK/$1
+. `dirname $0`/svnmerge-setup.sh 
+# sets up PWD_IS_TRUNK and TRUNK_IS_MODIFIED
+
+if test -z "$PWD_IS_TRUNK"
+then
+    echo Please execute this in trunk directory
+    exit 1
+fi
+
+if test -z "$1"
+then
+    echo "Usage: $0 [branch path]"
+    echo ""
+    echo "  e.g. $0 ../branches/release1"
+    exit 1
+fi
+                
+if test -z "$TRUNK_IS_MODIFIED"
+then
+    echo CREATE branch:
+    echo " $BRANCH"
+    echo FROM trunk:
+    echo " $TRUNK"
+    echo CTRL-C to abort, Enter to proceed.
+    read junk
+
+    svn cp $TRUNK $BRANCH &&                     \
+    svn ci $BRANCH -m "branch by $0" &&          \
+    svn update $TRUNK $BRANCH &&                 \
+    svnmerge init $BRANCH &&                     \
+    svn commit -F svnmerge-commit-message.txt && \
+    rm svnmerge-commit-message.txt &&            \
+    cd $BRANCH &&                                \
+    svnmerge init $TRUNK &&                      \
+    svn commit -F svnmerge-commit-message.txt && \
+    rm svnmerge-commit-message.txt &&            \
+    svn update $TRUNK $BRANCH 
+else
+    printf "\n$TRUNK_IS_MODIFIED\n"
+    echo TRUNK seems modified. Pls commit changes.
+fi

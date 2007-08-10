@@ -1,0 +1,107 @@
+@title Adviserl
+@version 0.1
+@copyright 2007 Affle Pvt. Ltd.
+@author Ludovic Coquelle <lcoquelle@gmail.com>
+
+@doc
+== Introduction ==
+
+Adviserl is a recommender system, which has been design originally to implement the Slope One algorithm, but should support different algorithms now.
+
+=== What it does ===
+
+Adviserl application provides two services, one to manage ratings and the other to manage predicitons, as well as a bunch of functions to keep ratings and predictions data in sync (kind of local API):
+<ul>
+    <li>'adv_ratings' store ratings information: one source (user) can rate any item by providing a integer rating value and any attached data (eg. timestamp...).</li>
+    <li>'adv_predictions' store predictions data: when a new rating is available, or a rating is updated, predictions is updated as well to maintain some statistics or covisitation data (this service uses a callback module to deals with data and currently a slope-one behavior module is implemented).</li>
+    <li>'adviserl' offer a bunch of interface functions enabling to coordinate actions on the two previous services; thus rating an item using those function will automatically call the predictions update; also prediction request will be dispatched from here.</li>
+</ul>
+
+=== Running / API ===
+
+Adviserl comes as an (hopefully standard) OTP application.
+
+The public interface is defined by the {@link adviserl} exported functions.
+
+Getting started:
+```
+% start application: by default use Slope-One structure
+application:start(sasl),
+application:start(adviserl),
+
+% add some rating in the system
+adviserl:rate(1, 2,  {3, no_rating_data}), % user 1, item 2, value 3
+adviserl:rate(1, 4,  {5, no_rating_data}), % ...
+adviserl:rate(2, 2,  {1, no_rating_data}),
+adviserl:rate(2, 5,  {8, no_rating_data}),
+adviserl:rate(3, 4,  {3, no_rating_data}),
+adviserl:rate(3, 5,  {2, no_rating_data}),
+adviserl:rate(3, 12, {2, no_rating_data}),
+
+% some debug output to "see" the data
+adv_ratings:print_debug(),
+adv_predictions:print_debug(),
+
+% try some predictions
+adviserl:recommend_all(1), % prediction for user 1
+adviserl:recommend_all(2), % ... for user 2
+adviserl:recommend_all(3),
+adviserl:recommend_all(4),
+adviserl:recommend_all([]), % for any user without rating!
+adviserl:recommend_all([{2,5}]), % for any user having those ratings
+adviserl:recommend_all([{4,5}]), % idem
+adviserl:recommend_all([{2,5},{4,5}]), % idem with multiple ratings
+adviserl:recommend_all([{3,5}]), % ... even if item is unknown
+
+% update on the fly
+IncreaseRating = fun({R, Data}) -> {R + 1, Data} end,
+DefaultRating = {1, no_data},
+adviserl:rate(1, 2, {7, now()}), % change from 3 to 7, adding data
+adviserl:rate(1, 2, IncreaseRating, DefaultRating), % update from 7 to 8
+adviserl:rate(1, 42, IncreaseRating, DefaultRating), % rate item 42 at 1 (default)
+
+bye.
+'''
+
+
+=== Building form sources ===
+
+An ad-hoc (Linux) makefile is provided.
+
+Main default target <em>all</em> build the application (target <em>build</em>) and generate this documentation (target <em>docs</em>).
+<pre>
+make
+</pre>
+
+A secondary target <em>dev</em> is provided to build the application with debug options, then run some tests (require eunit [http://freshmeat.net/projects/eunit]) and finally proceeds with some code checks.
+<pre>
+make dev
+</pre>
+
+As this 2 targets build the application with different configurations, you may want to clean all generated files with the target <em>clean</em>.
+<pre>
+make clean
+</pre>
+
+== Architecture ==
+```
+                  +------------------------------------- + 
+                  |        adv_adviserl_sup              |
+                  +--.'--------------+-------------------+
+                   .'                |               
+                 .'                  |               
+   O-----------.'-----O        O-------+---------O       
+   | adv_ratings      |        | adv_predictions |
+   O------------------O        | + callback      |       
+                               O-----------------O       
+
+   (Each box is a process:
+       0-corner box denote workers
+       +-corner box are supervisors.
+   )
+'''
+
+<ul>
+<li> {@link adv_ratings} is a server to maintain ratings per source.</li>
+<li> {@link adv_predictions} is a server maintaining the prediction data and executing the prediction through a behaviour module configurated at initalization.</li>
+</ul>
