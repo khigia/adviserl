@@ -32,13 +32,7 @@
 
 % Data structures
 
--record(advsrc, {
-    id,
-    key,
-    data
-}).
-
--record(advitm, {
+-record(advdata, {
     id,
     key,
     data
