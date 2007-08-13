@@ -128,11 +128,9 @@ save_files(Spec = {_Items, _Sources, _Ratings, _Predictions, _Options}) ->
 %%% the code itself could implement some kind of automatic call back.
 %%% Also, get,set and update imply 3 lookup for sourceID ratings!!!
 %%% @end
-rate(SourceID, ItemID, Rating={_RatingValue, _RatingData})
-    when
-        is_integer(SourceID),
-        is_integer(ItemID)
-    ->
+rate(Source, Item, Rating={_RatingValue, _RatingData}) ->
+    {ok, _IsSrcInserted, SourceID} = adv_sources:insert_new(Source, no_data),
+    {ok, _IsItmInserted, ItemID} = adv_items:insert_new(Item, no_data),
     % TODO: this OldRatings is not necessary!
     % adv_predictions should have a better API and not require it!
     OldRatings = adv_ratings:get_ratings(SourceID),
@@ -142,13 +140,7 @@ rate(SourceID, ItemID, Rating={_RatingValue, _RatingData})
         ItemID,
         Rating,
         OldRatings
-    );
-rate(Source, Item, Rating) when not is_integer(Source) ->
-    {_IsInserted, ID} = adv_sources:insert_new(Source, no_data),
-    rate(ID, Item, Rating);
-rate(Source, Item, Rating) when not is_integer(Item) ->
-    {_IsInserted, ID} = adv_items:insert_new(Item, no_data),
-    rate(Source, ID, Rating).
+    ).
 
 %%% @doc  Update a rating from a SourceID about a ItemID.
 %%% If SourceID or ItemID are not integer, ID are retrieve from
@@ -159,11 +151,9 @@ rate(Source, Item, Rating) when not is_integer(Item) ->
 %%% the code itself could implement some kind of automatic call back.
 %%% Also, get,set and update imply 3 lookup for sourceID ratings!!!
 %%% @end
-rate(SourceID, ItemID, Updater, Default)
-    when
-        is_integer(SourceID),
-        is_integer(ItemID)
-    ->
+rate(Source, Item, Updater, Default) ->
+    {ok, _IsSrcInserted, SourceID} = adv_sources:insert_new(Source, no_data),
+    {ok, _IsItmInserted, ItemID} = adv_items:insert_new(Item, no_data),
     % this OldRatings is not necessary!
     % items should have a better API and not require it!
     OldRatings = adv_ratings:get_ratings(SourceID),
@@ -174,13 +164,7 @@ rate(SourceID, ItemID, Updater, Default)
         ItemID,
         Rating,
         OldRatings
-    );
-rate(Source, Item, Updater, Default) when not is_integer(Source) ->
-    {_IsInserted, ID} = adv_sources:insert_new(Source, no_data),
-    rate(ID, Item, Updater, Default);
-rate(Source, Item, Updater, Default) when not is_integer(Item) ->
-    {_IsInserted, ID} = adv_items:insert_new(Item, no_data),
-    rate(Source, ID, Updater, Default).
+    ).
         
 %%% @doc  Retrieve prediction for each itemID with default options.
 %%% Call recommend_all/2 with default value for options (sorted and strict).

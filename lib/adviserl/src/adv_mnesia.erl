@@ -29,7 +29,8 @@
 
 
 % ~~ Declaration: Internal
-%empty
+
+-include("include/adviserl.hrl").
 
 
 % ~~ Implementation: API
@@ -46,6 +47,8 @@ init(Options) ->
                     {error, "mnesia application already running with different configuration"}
             end;
         no ->
+            ?DEBUG("Starting mnesia", []),
+            ok = filelib:ensure_dir(Dir),
             ok = application:set_env(mnesia, dir, Dir),
             mnesia:create_schema([node()]), %TODO may fail, don't care (already exists)?
             application:start(mnesia)

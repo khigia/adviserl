@@ -44,9 +44,10 @@
 -include("include/adviserl.hrl").
 
 -record(st, {
-    tid,        % ETS identifier: {ID, Key, ObjectData}
-    index,      % gb_tree index per ID (ETS is indexed per Key)
-    next        % next free ID slot
+    record_name, % record name of stored objects
+    tid,         % ETS identifier: {RecordName, ID, Key, ObjectData}
+    index,       % gb_tree index per ID (ETS is indexed per Key)
+    next         % next free ID slot
 }).
 
 
@@ -54,7 +55,8 @@
 
 init([TableName]) ->
     {ok, #st{
-        tid = ets:new(TableName, [set, {keypos,2}]),
+        record_name = TableName,
+        tid = ets:new(TableName, [set, {keypos,3}]),
         index = gb_trees:empty(),
         next = 1
     }}.
@@ -67,7 +69,7 @@ handle_call({load_file, File, _Options}, _From, State) ->
             ets:from_dets(TID, Dets),
             dets:close(Dets),
             {Idx, Cur} = ets:foldl(
-                fun({ID, Key, _Data}, {Tree, Pos}) ->
+                fun({_RName, ID, Key, _Data}, {Tree, Pos}) ->
                     {
                         gb_trees:enter(ID, Key, Tree),
                         lists:max([Pos, ID + 1])
@@ -97,19 +99,20 @@ handle_call({save_file, File, _Options}, _From, State) ->
             {reply, Err1, State}
     end;
 handle_call({insert_new, Key, Data}, _From, State) ->
+    RName = State#st.record_name,
     TID = State#st.tid,
     Idx = State#st.index,
     Cur = State#st.next,
-    case ets:insert_new(TID, {Cur, Key, Data}) of
+    case ets:insert_new(TID, {RName, Cur, Key, Data}) of
         true ->
             NewIdx = gb_trees:enter(Cur, Key, Idx),
-            {reply, {true, Cur}, State#st{index=NewIdx, next=Cur + 1}};
+            {reply, {ok, true, Cur}, State#st{index=NewIdx, next=Cur + 1}};
         _ ->
-            {reply, {false, ets:lookup_element(TID, Key, 1)}, State}
+            {reply, {ok, false, ets:lookup_element(TID, Key, 2)}, State}
     end;
 handle_call({id_from_key, Key}, _From, State) ->
     TID = State#st.tid,
-    case (catch ets:lookup_element(TID, Key, 1)) of
+    case (catch ets:lookup_element(TID, Key, 2)) of
         Int when is_integer(Int) ->
             {reply, Int, State};
         _ ->
@@ -119,7 +122,7 @@ handle_call({object_from_key, Key}, _From, State) ->
     TID = State#st.tid,
     case ets:lookup(TID, Key) of
         [Object] ->
-            {reply, Object, State};
+            {reply, {ok, Object}, State};
         [] ->
             {reply, undefined, State}
     end;

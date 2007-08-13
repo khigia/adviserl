@@ -43,35 +43,95 @@
 
 -include("include/adviserl.hrl").
 
+-include_lib("stdlib/include/qlc.hrl").
+
 -record(st, {
-    sources_table
+    next = undefined
 }).
 
 
 % ~~ Implementation: Behaviour callbacks
 
 init(Options) ->
-    SourcesTbl = init_sources_table(
-        proplists:get_value(sources_table, Options)
-    ),
+    NextID = init_sources_table(Options),
     {ok, #st{
-        sources_table = SourcesTbl
+        next = NextID
     }}.
 
-handle_call({load_file, File, _Options}, _From, State) ->
-    {reply, {error, not_implemented}, State};
-handle_call({save_file, File, _Options}, _From, State) ->
-    {reply, {error, not_implemented}, State};
+handle_call({load_file, _File, _Options}, _From, State) ->
+    % mnesia automaticaly restore dumps
+    {reply, ok, State};
+handle_call({save_file, _File, _Options}, _From, State) ->
+    % simple dump
+    {reply, mnesia:dump_tables([advsrc]), State};
 handle_call({insert_new, Key, Data}, _From, State) ->
-    {reply, {error, not_implemented}, State};
+    % following may fail but this is a system failure,
+    % should not be send back to user
+    % ... supervisor should handle
+    {atomic, {Result, NewState}} = mnesia:transaction(fun() ->
+        Src = mnesia:index_read(advsrc, Key, #advsrc.key),
+        case Src of
+            [#advsrc{id=SrcID}] ->
+                {{ok, false, SrcID}, State};
+            _ ->
+                NewID = State#st.next,
+                mnesia:write(#advsrc{id = NewID, key = Key, data = Data}),
+                {{ok, true, NewID}, State#st{next = NewID + 1}}
+        end
+    end),
+    {reply, Result, NewState};
 handle_call({id_from_key, Key}, _From, State) ->
-    {reply, {error, not_implemented}, State};
+    % following may fail but this is a system failure,
+    % should not be send back to user
+    % ... supervisor should handle
+    {atomic, Result} = mnesia:transaction(fun() ->
+        case mnesia:index_read(advsrc, Key, #advsrc.key) of
+            [#advsrc{id=SrcID}] ->
+                SrcID;
+            _ ->
+                undefined
+        end
+    end),
+    {reply, Result, State};
 handle_call({object_from_key, Key}, _From, State) ->
-    {reply, {error, not_implemented}, State};
+    % following may fail but this is a system failure,
+    % should not be send back to user
+    % ... supervisor should handle
+    {atomic, Result} = mnesia:transaction(fun() ->
+        case mnesia:index_read(advsrc, Key, #advsrc.key) of
+            [Source] ->
+                {ok, Source};
+            _ ->
+                undefined
+        end
+    end),
+    {reply, Result, State};
 handle_call({key_from_id, ID}, _From, State) ->
-    {reply, {error, not_implemented}, State};
+    % following may fail but this is a system failure,
+    % should not be send back to user
+    % ... supervisor should handle
+    {atomic, Result} = mnesia:transaction(fun() ->
+        case mnesia:read(advsrc, ID, read) of
+            [#advsrc{key=Key}] ->
+                {ok, Key};
+            _ ->
+                undefined
+        end
+    end),
+    {reply, Result, State};
 handle_call({object_from_id, ID}, From, State) ->
-    {reply, {error, not_implemented}, State};
+    % following may fail but this is a system failure,
+    % should not be send back to user
+    % ... supervisor should handle
+    {atomic, Result} = mnesia:transaction(fun() ->
+        case mnesia:read(advsrc, ID, read) of
+            [Source] ->
+                {ok, Source};
+            _ ->
+                undefined
+        end
+    end),
+    {reply, Result, State};
 handle_call(_Request, _From, State) ->
     {reply, unknown_call, State}.
 
@@ -90,14 +150,35 @@ code_change(_OldVsn, State, _Extra) ->
 
 % ~~ Implementation: Internal
 
-init_sources_table(undefined) ->
-    init_sources_table([]);
 init_sources_table(_Options) ->
-    %TODO should not try to create it at each start (distribuited app)
-    %TODO table creation should have a special call (not init)???
-    mnesia:create_table(advsrc, [
-        {attributes, record_info(fields, advsrc)}
-    ]).
+    %TODO should not try to create it at each start (distributed app)
+    Status = mnesia:create_table(advsrc, [
+        % distribution properties
+        {ram_copies, [node()]},
+        % table(data) properties
+        {type, set},
+        {attributes, record_info(fields, advsrc)},
+        {index, [key]}
+    ]),
+    Prep = fun() ->
+        {atomic, MaxID} = mnesia:transaction(fun() ->
+            ok = mnesia:wait_for_tables([advsrc], 20000),
+            QH = qlc:q([R#advsrc.id || R <- mnesia:table(advsrc)]),
+            lists:max([0 | qlc:e(QH)])
+        end),
+        MaxID + 1
+    end,
+    case Status of
+        {atomic,ok} ->
+            ?DEBUG("table advsrc created", []),
+            Prep();
+        {aborted,{already_exists,advsrc}} ->
+            ?DEBUG("using existing table advsrc", []),
+            Prep();
+        _ ->
+            ?ERROR("cannot create table advsrc", [], Status),
+            undefined
+    end.
 
 
 % ~~ Unit tests
