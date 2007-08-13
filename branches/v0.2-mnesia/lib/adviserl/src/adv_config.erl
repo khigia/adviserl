@@ -43,9 +43,19 @@
 
 %% @spec get_mnesia_config() -> PropertyList
 get_mnesia_config() ->
-    [
-        {dir, "./data/mnesia-adviserl"}
-    ].
+    Options0 = case application:get_env(mnesia) of
+        {ok, R} ->
+            R;
+        _ ->
+            []
+    end,
+    Options1 = case proplists:is_defined(dir, Options0) of
+        true ->
+            Options0;
+        _ ->
+            [{dir,"./data/mnesia-adviserl"}|Options0]
+    end,
+    Options1.
 
 %% @spec get_sources_behaviour() -> {Module::atom(), Options::list()}
 %%
