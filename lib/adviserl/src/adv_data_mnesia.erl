@@ -17,10 +17,10 @@
 %===========================================================================
 %%% @copyright 2007 Affle Pvt. Ltd.
 %%% @author Ludovic Coquelle <lcoquelle@gmail.com>
-%%% @doc Implementation of adv_souces using Mnesia.
+%%% @doc Store of data object (advdata) in Mnesia table.
 %%%
 %%% @end
--module(adv_sources_mnesia).
+-module(adv_data_mnesia).
 
 
 % ~~ Declaration: OTP relative
@@ -46,87 +46,90 @@
 -include_lib("stdlib/include/qlc.hrl").
 
 -record(st, {
+    table = undefined,
     next = undefined
 }).
 
 
 % ~~ Implementation: Behaviour callbacks
 
-init(Options) ->
-    NextID = init_sources_table(Options),
+init([TableName]) ->
+    NextID = init_table(TableName),
     {ok, #st{
+        table = TableName,
         next = NextID
     }}.
 
 handle_call({load_file, _File, _Options}, _From, State) ->
     % mnesia automaticaly restore dumps
     {reply, ok, State};
-handle_call({save_file, _File, _Options}, _From, State) ->
+handle_call({save_file, _File, _Options}, _From, St = #st{table=TableName}) ->
     % simple dump
-    {reply, mnesia:dump_tables([advsrc]), State};
-handle_call({insert_new, Key, Data}, _From, State) ->
+    {reply, mnesia:dump_tables([TableName]), St};
+handle_call({insert_new, Key, Data}, _From, State = #st{table=TableName}) ->
     % following may fail but this is a system failure,
     % should not be send back to user
     % ... supervisor should handle
     {atomic, {Result, NewState}} = mnesia:transaction(fun() ->
-        Src = mnesia:index_read(advsrc, Key, #advsrc.key),
-        case Src of
-            [#advsrc{id=SrcID}] ->
-                {{ok, false, SrcID}, State};
+        AdvData = mnesia:index_read(TableName, Key, #advdata.key),
+        case AdvData of
+            [#advdata{id=ID}] ->
+                {{ok, false, ID}, State};
             _ ->
                 NewID = State#st.next,
-                mnesia:write(#advsrc{id = NewID, key = Key, data = Data}),
+                NewRecord = #advdata{id = NewID, key = Key, data = Data},
+                mnesia:write(TableName, NewRecord, write),
                 {{ok, true, NewID}, State#st{next = NewID + 1}}
         end
     end),
     {reply, Result, NewState};
-handle_call({id_from_key, Key}, _From, State) ->
+handle_call({id_from_key, Key}, _From, State = #st{table=TableName}) ->
     % following may fail but this is a system failure,
     % should not be send back to user
     % ... supervisor should handle
     {atomic, Result} = mnesia:transaction(fun() ->
-        case mnesia:index_read(advsrc, Key, #advsrc.key) of
-            [#advsrc{id=SrcID}] ->
-                SrcID;
+        case mnesia:index_read(TableName, Key, #advdata.key) of
+            [#advdata{id=ID}] ->
+                ID;
             _ ->
                 undefined
         end
     end),
     {reply, Result, State};
-handle_call({object_from_key, Key}, _From, State) ->
+handle_call({object_from_key, Key}, _From, State = #st{table=TableName}) ->
     % following may fail but this is a system failure,
     % should not be send back to user
     % ... supervisor should handle
     {atomic, Result} = mnesia:transaction(fun() ->
-        case mnesia:index_read(advsrc, Key, #advsrc.key) of
-            [Source] ->
-                {ok, Source};
+        case mnesia:index_read(TableName, Key, #advdata.key) of
+            [AdvData] ->
+                {ok, AdvData};
             _ ->
                 undefined
         end
     end),
     {reply, Result, State};
-handle_call({key_from_id, ID}, _From, State) ->
+handle_call({key_from_id, ID}, _From, State = #st{table=TableName}) ->
     % following may fail but this is a system failure,
     % should not be send back to user
     % ... supervisor should handle
     {atomic, Result} = mnesia:transaction(fun() ->
-        case mnesia:read(advsrc, ID, read) of
-            [#advsrc{key=Key}] ->
+        case mnesia:read(TableName, ID, read) of
+            [#advdata{key=Key}] ->
                 {ok, Key};
             _ ->
                 undefined
         end
     end),
     {reply, Result, State};
-handle_call({object_from_id, ID}, From, State) ->
+handle_call({object_from_id, ID}, _From, State = #st{table=TableName}) ->
     % following may fail but this is a system failure,
     % should not be send back to user
     % ... supervisor should handle
     {atomic, Result} = mnesia:transaction(fun() ->
-        case mnesia:read(advsrc, ID, read) of
-            [Source] ->
-                {ok, Source};
+        case mnesia:read(TableName, ID, read) of
+            [AdvData] ->
+                {ok, AdvData};
             _ ->
                 undefined
         end
@@ -150,33 +153,34 @@ code_change(_OldVsn, State, _Extra) ->
 
 % ~~ Implementation: Internal
 
-init_sources_table(_Options) ->
+init_table(TableName) ->
     %TODO should not try to create it at each start (distributed app)
-    Status = mnesia:create_table(advsrc, [
+    Status = mnesia:create_table(TableName, [
         % distribution properties
         {ram_copies, [node()]},
         % table(data) properties
+        {record_name, advdata},
         {type, set},
-        {attributes, record_info(fields, advsrc)},
+        {attributes, record_info(fields, advdata)},
         {index, [key]}
     ]),
     Prep = fun() ->
         {atomic, MaxID} = mnesia:transaction(fun() ->
-            ok = mnesia:wait_for_tables([advsrc], 20000),
-            QH = qlc:q([R#advsrc.id || R <- mnesia:table(advsrc)]),
+            ok = mnesia:wait_for_tables([TableName], 20000),
+            QH = qlc:q([R#advdata.id || R <- mnesia:table(TableName)]),
             lists:max([0 | qlc:e(QH)])
         end),
         MaxID + 1
     end,
     case Status of
         {atomic,ok} ->
-            ?DEBUG("table advsrc created", []),
+            ?DEBUG("table '~w' created", [TableName]),
             Prep();
-        {aborted,{already_exists,advsrc}} ->
-            ?DEBUG("using existing table advsrc", []),
+        {aborted,{already_exists,TableName}} ->
+            ?DEBUG("using existing table '~w'", [TableName]),
             Prep();
         _ ->
-            ?ERROR("cannot create table advsrc", [], Status),
+            ?ERROR("cannot create table '~w'", [TableName], Status),
             undefined
     end.
 
