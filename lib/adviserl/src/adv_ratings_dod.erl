@@ -167,6 +167,9 @@ handle_call({fold_sources, Fun, Acc}, From, State) ->
     end),
     {noreply, State};
 
+handle_call(stop, _From, State) ->
+    {stop, "Stop requested", ok, State};
+
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
@@ -287,7 +290,7 @@ setget_rating_test_() -> [
 
 %%% @hidden
 pub_setget_rating_test() ->
-    gen_server:start_link(
+    {ok, Pid} = gen_server:start_link(
         {local, ?RATINGS_PNAME},
         ?MODULE,
         [],
@@ -296,6 +299,7 @@ pub_setget_rating_test() ->
     adv_ratings:set_rating(1,2,{3,some_data}),
     ?assert(adv_ratings:get_rating(1,2) == {3, some_data}),
     ?assert(adv_ratings:get_rating(1,4) == undefined),
-    ?assert(adv_ratings:get_rating(4,2) == undefined).
+    ?assert(adv_ratings:get_rating(4,2) == undefined),
+    gen_server:call(Pid, stop).
 
 -endif.

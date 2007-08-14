@@ -130,7 +130,7 @@ get_data_files_spec() ->
 %% If Key is not found and application is defined, use Default and set this
 %% value in app environment.
 get_behaviour(Key, Default) ->
-    case application:get_env(Key) of
+    case application:get_env(adviserl, Key) of
         {ok, Result={_Mod, _Options}} ->
             Result;
         _ ->
