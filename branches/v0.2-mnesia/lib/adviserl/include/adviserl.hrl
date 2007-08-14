@@ -38,6 +38,12 @@
     data
 }).
 
+-record(advrating, {
+    source,
+    item,
+    score,
+    data
+}).
 
 % Trace utilities
 
