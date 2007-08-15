@@ -166,30 +166,59 @@ rate(Source, Item, Updater, Default) ->
         OldRatings
     ).
         
-%%% @doc  Retrieve prediction for each itemID with default options.
-%%% Call recommend_all/2 with default value for options (sorted and strict).
-%%% @see recommend_all/2
-recommend_all(IDOrRatings) ->
-    recommend_all(IDOrRatings, []).
+%% @spec recommend_all(IDOrKeyOrRatings) -> predictions() | {error,Reason}
+%% @doc  Retrieve prediction for each item, using default options.
+%% Call recommend_all/2 with default value for options (sorted and strict);
+%% See documentation of recommend_all/2 for interpretation of parameter.
+%% @see recommend_all/2
+recommend_all(IDOrKeyOrRatings) ->
+    recommend_all(IDOrKeyOrRatings, []).
 
-%%% @doc  Retrieve prediction for each itemID.
-%%%
-%%% If option sorted is true, sort predictions by decreasing values.
-%%%
-%%% If option strict is true, return only strictly positive predictions.
-%%% @spec (Source::sourceID()|[{itemID(), ratingValue()}], [Option]) -> predictions()|{error, Reason}
-%%%     Option = {no_sorted, bool()} | {no_strict, bool()} | {no_remove_known, bool()}
-%%% @end
-recommend_all(SourceID, Options) when is_integer(SourceID), is_list(Options) ->
-    case adv_ratings:get_ratings(SourceID) of
-        undefined ->
-            {error, "SourceID not recognized"};
-        Ratings ->
-            adv_predictions:predict_all(Ratings, Options)
-    end;
-recommend_all(RatingValues, Options) when is_list(RatingValues), is_list(Options) ->
-    Ratings = adv_ratings:from_list(RatingValues),
-    adv_predictions:predict_all(Ratings, Options).
+%% @spec recommend_all(Source, [Option]) -> predictions() | {error, Reason}
+%%     Source = sourceID() | [{itemID(), ratingValue()}] | term()
+%%     Option = {no_sorted, bool()}
+%%            | {no_strict, bool()}
+%%            | {no_remove_known, bool()}
+%% @doc  Retrieve prediction for each itemID.
+%%
+%% Interpretation of Source depends on its type:
+%% <ul>
+%%     <li>if integer, Source is seen as ID;</li>
+%%     <li>if empty list or list beginning by one tuple, Source is seen as ratings;</li>
+%%     <li>else Source is seen as key.</li>
+%% </ul>
+%%
+%% Defaults options are
+%% <ul>
+%%     <li>`{no_sorted,false}': predictions are sorted by decreasing values.</li>
+%%     <li>`{no_strict,false}': return only strictly positive predictions.</li>
+%%     <li>`{no_remove_known,false}': predictions contains only not rated items.</li>
+%% </ul>
+recommend_all(SourceID, Options)
+    when
+        is_integer(SourceID),
+        is_list(Options)
+    ->
+    recommend_all_id(SourceID, Options);
+
+recommend_all(RatingValues=[], Options)
+    when
+        is_list(Options)
+    ->
+    recommend_all_ratings(RatingValues, Options);
+
+recommend_all(RatingValues=[Rating|_], Options)
+    when
+        is_tuple(Rating),
+        is_list(Options)
+    ->
+    recommend_all_ratings(RatingValues, Options);
+
+recommend_all(SourceKey, Options)
+    when
+        is_list(Options)
+    ->
+    recommend_all_key(SourceKey, Options).
 
 
 % ~~ Implementation: Behaviour callbacks
@@ -267,6 +296,27 @@ apply_to_files({Items, Sources, Ratings, Predictions, Options}, ModFun) ->
         Err ->
             Err
     end.
+
+recommend_all_key(SourceKey, Options) ->
+    case adv_sources:id_from_key(SourceKey) of
+        SourceID when is_integer(SourceID) ->
+            recommend_all_id(SourceID, Options);
+        _ ->
+            {error, unknown_source_key}
+    end.
+
+recommend_all_id(SourceID, Options) ->
+    case adv_ratings:get_ratings(SourceID) of
+        undefined ->
+            {error, unknown_source_id};
+        Ratings ->
+            adv_predictions:predict_all(Ratings, Options)
+    end.
+
+recommend_all_ratings(RatingValues, Options) ->
+    Ratings = adv_ratings:from_list(RatingValues),
+    adv_predictions:predict_all(Ratings, Options).
+
 
 % ~~ Unit tests
 -ifdef(EUNIT).

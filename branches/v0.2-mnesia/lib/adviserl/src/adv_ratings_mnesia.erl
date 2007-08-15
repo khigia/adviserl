@@ -24,7 +24,6 @@
 %%% @end
 -module(adv_ratings_mnesia).
 
--compile([export_all]).
 
 % ~~ Declaration: OTP relative
 -behaviour(gen_server).
@@ -51,13 +50,13 @@
 
 % ~~ Declaration: Internal
 
--record(st, {
-    table
-}).
-
 -include_lib("stdlib/include/qlc.hrl").
 
 -include("include/adviserl.hrl").
+
+-record(st, {
+    table
+}).
 
 
 % ~~ Implementation: API
@@ -254,7 +253,7 @@ set_rating(TableName, SourceID, ItemID, Rating) ->
 %%% @private
 update_rating(TableName, SourceID, ItemID, Updater, _Default={Score,Data}) ->
     {atomic, Reply} = mnesia:transaction(fun() ->
-        QH = qlc:q([{R#advrating.score, R#advrating.data} ||
+        QH = qlc:q([R ||
             R <- mnesia:table(TableName),
             R#advrating.source =:= SourceID,
             R#advrating.item =:= ItemID
@@ -276,6 +275,7 @@ update_rating(TableName, SourceID, ItemID, Updater, _Default={Score,Data}) ->
                     score = NewScore,
                     data = NewData
                 },
+                ok = mnesia:delete_object(TableName, Record, write),
                 mnesia:write(TableName, NewRecord, write);
             _ ->
                 {error, "inconsistent DB state"}
@@ -283,7 +283,7 @@ update_rating(TableName, SourceID, ItemID, Updater, _Default={Score,Data}) ->
     end),
     Reply.
 
-%%% @spec get_ratings(TableName, sourceID()) -> {ok, ratings()}|undefined
+%%% @spec get_ratings(TableName, sourceID()) -> ratings()|undefined
 %%% @doc  Retrieve all ratings for one source.
 %%% @private
 get_ratings(TableName, SourceID) ->
@@ -293,7 +293,12 @@ get_ratings(TableName, SourceID) ->
             R <- mnesia:table(TableName),
             R#advrating.source =:= SourceID
         ]),
-        qlc:e(QH)
+        case qlc:e(QH) of
+            [] ->
+                undefined;
+            Ratings ->
+                Ratings
+        end
     end),
     Reply.
 

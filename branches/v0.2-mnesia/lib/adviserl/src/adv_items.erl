@@ -31,7 +31,8 @@
     id_from_key/1,
     object_from_key/1,
     key_from_id/1,
-    object_from_id/1
+    object_from_id/1,
+    fold/2
 ]).
 
 
@@ -44,46 +45,53 @@
 
 load_file(File, Options) ->
     gen_server:call(
-        ?MODULE,
+        ?ITEMS_PNAME,
         {load_file, File, Options}
     ),
     ?INFO("file loaded", []).
 
 save_file(File, Options) ->
     gen_server:call(
-        ?MODULE,
+        ?ITEMS_PNAME,
         {save_file, File, Options}
     ),
     ?INFO("file saved", []).
 
 insert_new(Key, Data) ->
     gen_server:call(
-        ?MODULE,
+        ?ITEMS_PNAME,
         {insert_new, Key, Data}
     ).
 
 id_from_key(Key) ->
     gen_server:call(
-        ?MODULE,
+        ?ITEMS_PNAME,
         {id_from_key, Key}
     ).
 
 object_from_key(Key) ->
     gen_server:call(
-        ?MODULE,
+        ?ITEMS_PNAME,
         {object_from_key, Key}
     ).
 
 key_from_id(ID) ->
     gen_server:call(
-        ?MODULE,
+        ?ITEMS_PNAME,
         {key_from_id, ID}
     ).
 
 object_from_id(ID) ->
     gen_server:call(
-        ?MODULE,
+        ?ITEMS_PNAME,
         {object_from_id, ID}
+    ).
+
+%% @spec fold(Fun::(ID, Key, Data, Acc) -> NewAcc, Acc) -> Accumulator
+fold(Fun, Acc) ->
+    gen_server:call(
+        ?ITEMS_PNAME,
+        {fold, Fun, Acc}
     ).
 
 
