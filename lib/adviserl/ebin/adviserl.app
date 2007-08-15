@@ -22,9 +22,12 @@
     {mod, {adviserl, [
     ]}},
     {env, [
-        {sources,     {adv_data_ets, [adv_sources]}},
-        {items,       {adv_data_ets, [adv_items]}},
-        {ratings,     {adv_ratings_dod, []}},
-        {predictions, {adv_slone_smdod, []}}
+        {mnesia, [
+            {dir, "./data/mnesia-adviserl/"}
+        ]},
+        {sources,     {adv_data_mnesia,    [advtest_sources]}},
+        {items,       {adv_data_mnesia,    [advtest_items]}},
+        {ratings,     {adv_ratings_mnesia, [advtest_ratings]}},
+        {predictions, {adv_slone_mnesia,   [advtest_predictions]}}
     ]}
 ]}.

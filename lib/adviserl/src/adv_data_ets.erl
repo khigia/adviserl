@@ -140,6 +140,12 @@ handle_call({object_from_id, ID}, From, State) ->
         _ ->
             {reply, undefined, State}
     end;
+handle_call({fold, Fun, Acc}, _From, State) ->
+    TID = State#st.tid,
+    F = fun(#advdata{id = ID, key = Key, data = Data}, Acc0) ->
+        Fun(ID, Key, Data, Acc0)
+    end,
+    {reply, ets:foldl(F, Acc, TID), State};
 handle_call(_Request, _From, State) ->
     {reply, unknown_call, State}.
 

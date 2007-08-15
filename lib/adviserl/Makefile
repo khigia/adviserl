@@ -128,7 +128,7 @@ clean: subtargets_clean
 	@rm -vf test/*.beam
 	@rm -vf log/*
 	@touch doc/remove.me # ensure next command does not failed
-	@ls -1 -I *.edoc -I *.txt doc | sed -e 's#\(.*\)#doc/\1#' | xargs rm -v
+	@ls -1 -I *.edoc -I *.txt -I figure doc | sed -e 's#\(.*\)#doc/\1#' | xargs rm -v
 	@echo
 
 

@@ -135,6 +135,14 @@ handle_call({object_from_id, ID}, _From, State = #st{table=TableName}) ->
         end
     end),
     {reply, Result, State};
+handle_call({fold, Fun, Acc}, _From, State = #st{table=TableName}) ->
+    F = fun(#advdata{id = ID, key = Key, data = Data}, Acc0) ->
+        Fun(ID, Key, Data, Acc0)
+    end,
+    {atomic, Result} = mnesia:transaction(fun() ->
+        mnesia:foldl(F, Acc, TableName)
+    end),
+    {reply, Result, State};
 handle_call(_Request, _From, State) ->
     {reply, unknown_call, State}.
 

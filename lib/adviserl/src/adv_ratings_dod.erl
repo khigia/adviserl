@@ -246,7 +246,7 @@ update_rating(SourceID, ItemID, Updater, Default, Ratings) ->
     ).
 
 %%% @doc  Retrieve all ratings for one source.
-%%% @spec (sourceID(), AllRatings) -> {ok, ratings()}|undefined
+%%% @spec (sourceID(), AllRatings) -> ratings()|undefined
 %%% @private
 %%% @end
 get_ratings(SourceID, Ratings) ->

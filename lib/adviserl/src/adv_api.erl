@@ -63,7 +63,7 @@
 %%% @see  gen_server:start_link/4
 %%% @end
 start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    gen_server:start_link({local, ?API_PNAME}, ?MODULE, [], []).
 
 
 % ~~ Implementation: Behaviour callbacks
@@ -85,11 +85,11 @@ handle_call({rate, SourceID, ItemID, Rating}, _From, State) ->
 handle_call({rate, SourceID, ItemID, Updater, Default}, _From, State) ->
     {reply, adviserl:rate(SourceID, ItemID, Updater, Default), State};
 
-handle_call({recommend_all, SourceIDOrRatings}, _From, State) ->
-    {reply, adviserl:recommend_all(SourceIDOrRatings), State};
+handle_call({recommend_all, SourceIDOrKeyOrRatings}, _From, State) ->
+    {reply, adviserl:recommend_all(SourceIDOrKeyOrRatings), State};
 
-handle_call({recommend_all, SourceIDOrRatings, Options}, _From, State) ->
-    {reply, adviserl:recommend_all(SourceIDOrRatings, Options), State};
+handle_call({recommend_all, SourceIDOrKeyOrRatings, Options}, _From, State) ->
+    {reply, adviserl:recommend_all(SourceIDOrKeyOrRatings, Options), State};
 
 handle_call(_Request, _From, State) ->
     {reply, not_handled_call, State}.
