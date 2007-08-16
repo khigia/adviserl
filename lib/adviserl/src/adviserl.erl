@@ -42,6 +42,7 @@
     save_files/0,
     save_files/1,
     rate/3,
+    async_rate/3,
     rate/4,
     recommend_all/1,
     recommend_all/2
@@ -141,6 +142,11 @@ rate(Source, Item, Rating={_RatingValue, _RatingData}) ->
         Rating,
         OldRatings
     ).
+
+async_rate(Source, Item, Rating={_RatingValue, _RatingData}) ->
+    {ok, _IsSrcInserted, SourceID} = adv_sources:insert_new(Source, no_data),
+    {ok, _IsItmInserted, ItemID} = adv_items:insert_new(Item, no_data),
+    adv_ratings:set_rating(SourceID, ItemID, Rating).
 
 %%% @doc  Update a rating from a SourceID about a ItemID.
 %%% If SourceID or ItemID are not integer, ID are retrieve from

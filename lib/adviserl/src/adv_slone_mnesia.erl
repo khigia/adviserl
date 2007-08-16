@@ -160,18 +160,48 @@ init_predictions(Table) ->
     % delete the whole table content
     {atomic, ok} = mnesia:clear_table(Table),
     % read all ratings to (re)populate the table
-    adv_ratings:fold_sources(
-        fun(_SourceID, SourceRatings, Acc) ->
-            %?DEBUG("Fold sources: source=~w", [SourceID]),
-            eval_ratings_items(
-                Table,
-                fun update_items_add/3,
-                SourceRatings
-            ),
-            Acc
-        end,
-        ok
-    ).
+    {atomic, _} = mnesia:transaction(fun() ->
+        mnesia:write_lock_table(Table),
+        adv_ratings:fold_sources(
+            fun(_SourceID, SourceRatings, Acc) ->
+                %?DEBUG("Fold sources: source=~w", [SourceID]),
+                % Following code is equivalent but less efficient:
+                %     eval_ratings_items(
+                %         Table,
+                %         fun update_items_add/3,
+                %         SourceRatings
+                %     ),
+                adv_ratings:fold_ratings(
+                    fun(Item1, Rating1, ok) ->
+                        % new crossref with all other items (skew matrix)
+                        adv_ratings:fold_ratings(
+                            fun(Item2, Rating2, ok) ->
+                                case Item2 > Item1 of
+                                    true ->
+                                        Value = update_items_add(
+                                            Rating1,
+                                            Rating2,
+                                            new_slone_score(Item1, Item2)
+                                        ),
+                                        mnesia:dirty_write(Table, Value);
+                                    _ ->
+                                        ok
+                                end
+                            end,
+                            ok,
+                            SourceRatings
+                        )
+                    end,
+                    ok,
+                    SourceRatings
+                ),
+                Acc
+            end,
+            ok
+        )
+    end),
+    ok.
+
 
 %%% @spec eval_ratings_items(Table, Updater, ratings()) -> ok
 %%%     Updater = (rating(), rating(), integer()) -> integer()
@@ -181,40 +211,49 @@ init_predictions(Table) ->
 %%% @see  update_items_add/3
 %%% @private
 eval_ratings_items(Table, ItemsUpdator, SourceRatings) ->
-    adv_ratings:fold_ratings(
-        fun(Item1, Rating1, ok) ->
-            %?DEBUG("Fold ratings: item=~w rating=~w", [Item1, Rating1]),
-            % compute new crossref with all other items (using skew property)
-            adv_ratings:fold_ratings(
-                fun(Item2, Rating2, ok) ->
-                    case Item2 > Item1 of
-                        true ->
-                            %?DEBUG("Fold ratings: item=~w rating=~w: add itemref=~w ratingref=~w", [Item1, Rating1, Item2, Rating2]),
-                            update_table(
-                                Table,
-                                Item1,
-                                Item2,
-                                fun(SlnScore) ->
-                                    ItemsUpdator(Rating1, Rating2, SlnScore)
-                                end,
-                                ItemsUpdator(Rating1, Rating2, #slnscore{
-                                    row_item = Item1,
-                                    col_item = Item2,
-                                    freq = 0,
-                                    diff = 0
-                                })
-                            );
-                        _ ->
-                            ok
-                    end
-                end,
-                ok,
-                SourceRatings
-            )
-        end,
-        ok,
-        SourceRatings
-    ).
+    {atomic, Reply} = mnesia:transaction(fun() ->
+        adv_ratings:fold_ratings(
+            fun(Item1, Rating1, ok) ->
+                % new crossref with all other items (using skew property)
+                adv_ratings:fold_ratings(
+                    fun(Item2, Rating2, ok) ->
+                        case Item2 > Item1 of
+                            true ->
+                                update_record_inmnesia(
+                                    Table,
+                                    Item1,
+                                    Item2,
+                                    fun(SlnScore) ->
+                                        ItemsUpdator(Rating1, Rating2, SlnScore)
+                                    end,
+                                    fun() ->
+                                        ItemsUpdator(Rating1, Rating2, new_slone_score(Item1,Item2))
+                                    end
+                                );
+                            _ ->
+                                ok
+                        end
+                    end,
+                    ok,
+                    SourceRatings
+                )
+            end,
+            ok,
+            SourceRatings
+        )
+    end),
+    Reply.
+
+%% @spec new_slone_score(Row::itemID(), Col::itemID()) -> Record
+%%     Record = {slnscore, Row, Col, 0, 0}
+%% @private
+new_slone_score(Row, Col) ->
+    #slnscore{
+        row_item = Row,
+        col_item = Col,
+        freq = 0,
+        diff = 0
+    }.
 
 %%% @spec (rating(), rating(), SloneScore) -> NewSloneScore
 %%% @doc  Given two related ratings and the previous crossref score, return
@@ -271,32 +310,97 @@ update_rating(Table, SourceID, ItemID, _NewRating, OldRatings) ->
 predict_all(Table, SourceRatings, Options) ->
     % hopefully this respect the weighted slope one algorithm
     %fprof:trace(start),
-    {atomic, Result} = mnesia:transaction(fun() -> adv_items:fold(
-        fun(RowItem, _Key, _Data, ResultAcc) ->
-            Score = adv_ratings:fold_ratings(
-                fun
-                    (ColItem, _Cell, Acc) when ColItem =:= RowItem ->
-                        Acc; % ignore diagonal
-                    (ColItem, {CVal,_CData}, Acc={FreqAcc, DevAcc}) ->
-                        case get_cell_inmnesia(Table, RowItem, ColItem) of
-                            {Freq, Dev} ->
-                                {
-                                    FreqAcc + Freq,
-                                    DevAcc + Freq * (Dev + CVal)
-                                };
-                            _ ->
-                                Acc
-                        end
-                end,
-                {0, 0}, % {freq, diff}
-                SourceRatings
-            ),
-            [{RowItem,Score}|ResultAcc]
-        end,
-        []
-    ) end),
+    Result = predict_all_impl2(Table, SourceRatings),
     %fprof:trace(stop),
     format_prediction_result(Result, SourceRatings, Options).
+
+%predict_all_impl1(Table, SourceRatings) ->
+%    % this implementation is not efficient
+%    {atomic, Result} = mnesia:transaction(fun() -> adv_items:fold(
+%        % performance problem: folding item, we are querying the predictions
+%        % table for all item even those without crossref, and this for each
+%        % rating of source
+%        fun(RowItem, _Key, _Data, ResultAcc) ->
+%            Score = adv_ratings:fold_ratings(
+%                fun
+%                    (ColItem, _Cell, Acc) when ColItem =:= RowItem ->
+%                        Acc; % ignore diagonal
+%                    (ColItem, {CVal,_CData}, Acc={FreqAcc, DevAcc}) ->
+%                        case get_cell_inmnesia(Table, RowItem, ColItem) of
+%                            {Freq, Dev} ->
+%                                {
+%                                    FreqAcc + Freq,
+%                                    DevAcc + Freq * (Dev + CVal)
+%                                };
+%                            _ ->
+%                                Acc
+%                        end
+%                end,
+%                {0, 0}, % {freq, diff}
+%                SourceRatings
+%            ),
+%            [{RowItem,Score}|ResultAcc]
+%        end,
+%        []
+%    ) end),
+%    Result.
+
+%%% @private
+predict_all_impl2(Table, SourceRatings) ->
+    Dict = adv_ratings:fold_ratings(
+        fun(ID, {CVal,_CData}, Acc) ->
+            %following is get_col(Table, Col) + adding CVal
+            {atomic, Result} = mnesia:transaction(fun() ->
+                QH1 = qlc:q([
+                    {
+                        R1#slnscore.col_item, [{
+                            R1#slnscore.freq,
+                            - R1#slnscore.diff,
+                            CVal
+                        }]
+                    } ||
+                    R1 <- mnesia:table(Table),
+                    R1#slnscore.row_item =:= ID
+                ]),
+                QH2 = qlc:q([
+                    {
+                        R2#slnscore.row_item, [{
+                            R2#slnscore.freq,
+                            R2#slnscore.diff,
+                            CVal
+                        }]
+                    } ||
+                    R2 <- mnesia:table(Table),
+                    R2#slnscore.row_item < ID, % hint for query index
+                    R2#slnscore.col_item =:= ID
+                ]),
+                QR1 = qlc:e(QH1),
+                QR2 = qlc:e(QH2),
+                QR1 ++ QR2
+                %qlc:e(qlc:append(QH1,QH2)) failed ...?
+            end),
+            NewDict = dict:from_list(Result),
+            dict:merge(fun(_K,V1,V2) -> V1 ++ V2 end, NewDict, Acc)
+        end,
+        dict:new(),
+        SourceRatings
+    ),
+    L = dict:to_list(Dict),
+    lists:map(
+        fun({ItemID, Scores}) ->
+            {
+                ItemID,
+                lists:foldl(
+                    fun({F,D,V}, {FAcc,DAcc}) ->
+                        {FAcc + F, DAcc + F * (D + V)}
+                    end,
+                    {0,0},
+                    Scores
+                )
+            }
+        end,
+        L
+    ).
 
 %%% @doc  Use options to format the predictions results.
 %%% @spec ([{itemID(), {Freq::integer(), Dev::integer()}}], [rating()], [Option]) -> predictions()
@@ -397,37 +501,30 @@ print_debug(Table) ->
     ).
 
 
-% --- table operation to maintain ~skewmatrix data ---
-
-%% @spec update_table(Table, ItemRow, ItemCol, Updater, Default) -> ok
-update_table(Table, ItemRow, ItemCol, Updater, Default)
+update_record_inmnesia(Table, ItemRow, ItemCol, Updater, Default)
     when
         ItemCol > ItemRow % symmetric matrix
     ->
-    % if object exists, put result of updater on it else put default
-    {atomic, Reply} = mnesia:transaction(fun() ->
-        QH = qlc:q([R ||
-            R <- mnesia:table(Table),
-            R#slnscore.row_item =:= ItemRow,
-            R#slnscore.col_item =:= ItemCol
-        ]),
-        case qlc:e(QH) of
-            [] ->
-                % no previsous value, use default
-                mnesia:write(Table, Default, write);
-            [Record] ->
-                NewRecord = Updater(Record),
-                ok = mnesia:delete_object(Table, Record, write),
-                mnesia:write(Table, NewRecord, write);
-            Any ->
-                ?ERROR(
-                    "DB error or more than one result in query [~s]",
-                    [qlc:info(QH)],
-                    Any
-                )
-        end
-    end),
-    Reply.
+    QH = qlc:q([R ||
+        R <- mnesia:table(Table),
+        R#slnscore.row_item =:= ItemRow,
+        R#slnscore.col_item =:= ItemCol
+    ]),
+    case qlc:e(QH) of
+        [] ->
+            % no previsous value, use default
+            mnesia:write(Table, Default(), write);
+        [Record] ->
+            NewRecord = Updater(Record),
+            ok = mnesia:delete_object(Table, Record, write),
+            mnesia:write(Table, NewRecord, write);
+        Any ->
+            ?ERROR(
+                "DB error or more than one result in query [~s]",
+                [qlc:info(QH)],
+                Any
+            )
+    end.
 
 %%@spec get_cell(Table, ItemRow, ItemCol) -> {Freq, Diff} | undefined
 get_cell(Table, ItemRow, ItemCol) ->
