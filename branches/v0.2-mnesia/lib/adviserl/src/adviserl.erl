@@ -179,6 +179,7 @@ recommend_all(IDOrKeyOrRatings) ->
 %%     Option = {no_sorted, bool()}
 %%            | {no_strict, bool()}
 %%            | {no_remove_known, bool()}
+%%            | {output, id|key}
 %% @doc  Retrieve prediction for each itemID.
 %%
 %% Interpretation of Source depends on its type:
@@ -190,9 +191,10 @@ recommend_all(IDOrKeyOrRatings) ->
 %%
 %% Defaults options are
 %% <ul>
-%%     <li>`{no_sorted,false}': predictions are sorted by decreasing values.</li>
-%%     <li>`{no_strict,false}': return only strictly positive predictions.</li>
-%%     <li>`{no_remove_known,false}': predictions contains only not rated items.</li>
+%%     <li>`{no_sorted,false}': predictions are sorted by decreasing values; if true the sort may not be done.</li>
+%%     <li>`{no_strict,false}': return only strictly positive predictions; if true predictions may contain some item with null prediction score.</li>
+%%     <li>`{no_remove_known,false}': predictions contains only not rated items; if true predictions may contain already rated items.</li>
+%%     <li>`{no_key_lookup,false}': predictions is a list of item's keys; if true predictions is a list of item's internal ID (avoid one lookup per prediction).</li>
 %% </ul>
 recommend_all(SourceID, Options)
     when
@@ -310,12 +312,34 @@ recommend_all_id(SourceID, Options) ->
         undefined ->
             {error, unknown_source_id};
         Ratings ->
-            adv_predictions:predict_all(Ratings, Options)
+            predict_all(Ratings, Options)
     end.
 
 recommend_all_ratings(RatingValues, Options) ->
     Ratings = adv_ratings:from_list(RatingValues),
-    adv_predictions:predict_all(Ratings, Options).
+    predict_all(Ratings, Options).
+
+predict_all(Ratings, Options) ->
+    Predictions0 = adv_predictions:predict_all(Ratings, Options),
+    Predictions1 = case proplists:get_bool(no_key_lookup, Options) of
+        false ->
+            %TODO those lookups could be done in one message to adv_items...
+            lists:reverse(lists:foldl(
+                fun({ItemID, Score}, Acc) ->
+                    case adv_items:key_from_id(ItemID) of
+                        {ok, Key} ->
+                            [{Key, Score}|Acc];
+                        _ ->
+                            Acc
+                    end
+                end,
+                [],
+                Predictions0
+            ));
+        _ ->
+            Predictions0
+    end,
+    Predictions1.
 
 
 % ~~ Unit tests

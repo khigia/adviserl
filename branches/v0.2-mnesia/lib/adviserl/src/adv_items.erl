@@ -75,6 +75,7 @@ object_from_key(Key) ->
         {object_from_key, Key}
     ).
 
+%% @spec key_from_id(ID) -> {ok, Key} | undefined
 key_from_id(ID) ->
     gen_server:call(
         ?ITEMS_PNAME,
@@ -91,7 +92,8 @@ object_from_id(ID) ->
 fold(Fun, Acc) ->
     gen_server:call(
         ?ITEMS_PNAME,
-        {fold, Fun, Acc}
+        {fold, Fun, Acc},
+        infinity
     ).
 
 

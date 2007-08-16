@@ -271,15 +271,14 @@ update_rating(Table, SourceID, ItemID, _NewRating, OldRatings) ->
 predict_all(Table, SourceRatings, Options) ->
     % hopefully this respect the weighted slope one algorithm
     %fprof:trace(start),
-    %TODO
-    Result = adv_items:fold(
+    {atomic, Result} = mnesia:transaction(fun() -> adv_items:fold(
         fun(RowItem, _Key, _Data, ResultAcc) ->
             Score = adv_ratings:fold_ratings(
                 fun
                     (ColItem, _Cell, Acc) when ColItem =:= RowItem ->
                         Acc; % ignore diagonal
                     (ColItem, {CVal,_CData}, Acc={FreqAcc, DevAcc}) ->
-                        case get_cell(Table, RowItem, ColItem) of
+                        case get_cell_inmnesia(Table, RowItem, ColItem) of
                             {Freq, Dev} ->
                                 {
                                     FreqAcc + Freq,
@@ -295,7 +294,7 @@ predict_all(Table, SourceRatings, Options) ->
             [{RowItem,Score}|ResultAcc]
         end,
         []
-    ),
+    ) end),
     %fprof:trace(stop),
     format_prediction_result(Result, SourceRatings, Options).
 
@@ -431,35 +430,39 @@ update_table(Table, ItemRow, ItemCol, Updater, Default)
     Reply.
 
 %%@spec get_cell(Table, ItemRow, ItemCol) -> {Freq, Diff} | undefined
-get_cell(Table, ItemRow, ItemCol) when ItemCol < ItemRow ->
+get_cell(Table, ItemRow, ItemCol) ->
+    {atomic, Reply} = mnesia:transaction(
+        fun() -> get_cell_inmnesia(Table, ItemRow, ItemCol) end
+    ),
+    Reply.
+
+get_cell_inmnesia(Table, ItemRow, ItemCol) when ItemCol > ItemRow ->
+    QH = qlc:q([R ||
+        R <- mnesia:table(Table),
+        R#slnscore.row_item =:= ItemRow,
+        R#slnscore.col_item =:= ItemCol
+    ]),
+    case qlc:e(QH) of
+        [] ->
+            undefined;
+        [#slnscore{freq = Freq, diff = Diff}] ->
+            {Freq, Diff};
+        Any ->
+            ?ERROR(
+                "DB error or more than one result in query [~s]",
+                [qlc:info(QH)],
+                Any
+            )
+    end;
+get_cell_inmnesia(Table, ItemRow, ItemCol) when ItemCol < ItemRow ->
     % symetric function
-    case get_cell(Table, ItemCol, ItemRow) of
+    case get_cell_inmnesia(Table, ItemCol, ItemRow) of
         {Freq, Diff} ->
             {Freq, - Diff};
         Any ->
             Any
-    end;
-get_cell(Table, ItemRow, ItemCol) when ItemCol > ItemRow ->
-    {atomic, Reply} = mnesia:transaction(fun() ->
-        QH = qlc:q([R ||
-            R <- mnesia:table(Table),
-            R#slnscore.row_item =:= ItemRow,
-            R#slnscore.col_item =:= ItemCol
-        ]),
-        case qlc:e(QH) of
-            [] ->
-                undefined;
-            [#slnscore{freq = Freq, diff = Diff}] ->
-                {Freq, Diff};
-            Any ->
-                ?ERROR(
-                    "DB error or more than one result in query [~s]",
-                    [qlc:info(QH)],
-                    Any
-                )
-        end
-    end),
-    Reply.
+    end.
+
 
 % ~~ Unit tests
 -ifdef(EUNIT).
