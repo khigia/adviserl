@@ -64,7 +64,7 @@ logs:
 .PHONY : devbuild
 devbuild: subtargets_build
 	@echo "==== Compiling application ===="
-	${CMD_ERL} -noshell ${ERLPATH} -eval "make:all([${BUILDOPT_DEV}])" -s init stop
+	${CMD_ERL} -noshell ${ERLPATH} -eval "up_to_date = make:all([${BUILDOPT_DEV}])." -s init stop
 	@echo
 
 .PHONY : test

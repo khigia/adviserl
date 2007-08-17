@@ -25,6 +25,7 @@ define run_test
 	@echo
 endef
 
+
 build:
 	${CMD_ERL} -noshell -eval "make:all()" -s init stop
 

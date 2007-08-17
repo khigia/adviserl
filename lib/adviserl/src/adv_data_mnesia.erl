@@ -19,6 +19,7 @@
 %%% @author Ludovic Coquelle <lcoquelle@gmail.com>
 %%% @doc Store of data object (advdata) in Mnesia table.
 %%%
+%% @todo Use a mnesia counter instead of using state data (distribution)
 %%% @end
 -module(adv_data_mnesia).
 

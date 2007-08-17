@@ -61,9 +61,6 @@ start_link() ->
 %%% @see  supervisor:init/1
 %%% @end
 init(_Args) ->
-    % no need for a process to init mnesia (and don't no how to include it)
-    MnesiaConfig = adv_config:get_mnesia_config(),
-    ok = adv_mnesia:init(MnesiaConfig),
     % 4 servers for the system
     ItemBehaviour = adv_config:get_items_behaviour(),
     {ItemsMod, ItemsModArgs} = ItemBehaviour,

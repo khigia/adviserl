@@ -187,27 +187,31 @@ code_change(_OldVsn, State, _Extra) ->
 %%% @end
 init_table(TableName) ->
     %TODO should not try to create it at each start (distributed app)
-    Status = mnesia:create_table(TableName, [
-        % distribution properties
-        {ram_copies, [node()]},
-        % table(data) properties
-        {record_name, advrating},
-        {type, bag},
-        {attributes, record_info(fields, advrating)},
-        {index, [item]}
-    ]),
+    Create = fun() ->
+        Status = mnesia:create_table(TableName, [
+            % distribution properties
+            {ram_copies, [node()]},
+            % table(data) properties
+            {record_name, advrating},
+            {type, bag},
+            {attributes, record_info(fields, advrating)},
+            {index, [item]}
+        ]),
+        mnesia:add_table_index(TableName, item),
+        Status
+    end,
     Prepare = fun() ->
         ok = mnesia:wait_for_tables([TableName], 20000),
         TableName
     end,
-    case Status of
+    case Create() of
         {atomic,ok} ->
             ?DEBUG("table '~w' created", [TableName]),
             Prepare();
         {aborted,{already_exists,TableName}} ->
             ?DEBUG("using existing table '~w'", [TableName]),
             Prepare();
-        _ ->
+        Status ->
             ?ERROR("cannot create table '~w'", [TableName], Status),
             undefined
     end.
@@ -254,7 +258,7 @@ set_rating(TableName, SourceID, ItemID, Rating) ->
 update_rating(TableName, SourceID, ItemID, Updater, _Default={Score,Data}) ->
     {atomic, Reply} = mnesia:transaction(fun() ->
         QH = qlc:q([R ||
-            R <- mnesia:table(TableName),
+            R <- mnesia:table(TableName, [{lock, write}]),
             R#advrating.source =:= SourceID,
             R#advrating.item =:= ItemID
         ]),
@@ -275,7 +279,7 @@ update_rating(TableName, SourceID, ItemID, Updater, _Default={Score,Data}) ->
                     score = NewScore,
                     data = NewData
                 },
-                ok = mnesia:delete_object(TableName, Record, write),
+                ok = mnesia:delete_object(TableName, Record, sticky_write),
                 mnesia:write(TableName, NewRecord, write);
             _ ->
                 {error, "inconsistent DB state"}
