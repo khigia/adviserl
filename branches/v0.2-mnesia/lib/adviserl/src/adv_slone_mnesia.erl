@@ -128,27 +128,31 @@ code_change(_OldVsn, State, _Extra) ->
 %%% @private
 init_table(TableName) ->
     %TODO should not try to create it at each start (distributed app)
-    Status = mnesia:create_table(TableName, [
-        % distribution properties
-        {ram_copies, [node()]},
-        % table(data) properties
-        {record_name, slnscore},
-        {type, bag},
-        {attributes, record_info(fields, slnscore)},
-        {index, [col_item]}
-    ]),
+    Create = fun() ->
+        Status = mnesia:create_table(TableName, [
+            % distribution properties
+            {ram_copies, [node()]},
+            % table(data) properties
+            {record_name, slnscore},
+            {type, bag},
+            {attributes, record_info(fields, slnscore)},
+            {index, [col_item]}
+        ]),
+        mnesia:add_table_index(TableName, col_item),
+        Status
+    end,
     Prepare = fun() ->
         ok = mnesia:wait_for_tables([TableName], 20000),
         TableName
     end,
-    case Status of
+    case Create() of
         {atomic,ok} ->
             ?DEBUG("table '~w' created", [TableName]),
             Prepare();
         {aborted,{already_exists,TableName}} ->
             ?DEBUG("using existing table '~w'", [TableName]),
             Prepare();
-        _ ->
+        Status ->
             ?ERROR("cannot create table '~w'", [TableName], Status),
             undefined
     end.
@@ -211,38 +215,35 @@ init_predictions(Table) ->
 %%% @see  update_items_add/3
 %%% @private
 eval_ratings_items(Table, ItemsUpdator, SourceRatings) ->
-    {atomic, Reply} = mnesia:transaction(fun() ->
-        adv_ratings:fold_ratings(
-            fun(Item1, Rating1, ok) ->
-                % new crossref with all other items (using skew property)
-                adv_ratings:fold_ratings(
-                    fun(Item2, Rating2, ok) ->
-                        case Item2 > Item1 of
-                            true ->
-                                update_record_inmnesia(
-                                    Table,
-                                    Item1,
-                                    Item2,
-                                    fun(SlnScore) ->
-                                        ItemsUpdator(Rating1, Rating2, SlnScore)
-                                    end,
-                                    fun() ->
-                                        ItemsUpdator(Rating1, Rating2, new_slone_score(Item1,Item2))
-                                    end
-                                );
-                            _ ->
-                                ok
-                        end
-                    end,
-                    ok,
-                    SourceRatings
-                )
-            end,
-            ok,
-            SourceRatings
-        )
-    end),
-    Reply.
+    adv_ratings:fold_ratings(
+        fun(Item1, Rating1, ok) ->
+            % new crossref with all other items (using skew property)
+            adv_ratings:fold_ratings(
+                fun(Item2, Rating2, ok) ->
+                    case Item2 > Item1 of
+                        true ->
+                            update_record(
+                                Table,
+                                Item1,
+                                Item2,
+                                fun(SlnScore) ->
+                                    ItemsUpdator(Rating1, Rating2, SlnScore)
+                                end,
+                                fun() ->
+                                    ItemsUpdator(Rating1, Rating2, new_slone_score(Item1,Item2))
+                                end
+                            );
+                        _ ->
+                            ok
+                    end
+                end,
+                ok,
+                SourceRatings
+            )
+        end,
+        ok,
+        SourceRatings
+    ).
 
 %% @spec new_slone_score(Row::itemID(), Col::itemID()) -> Record
 %%     Record = {slnscore, Row, Col, 0, 0}
@@ -314,6 +315,9 @@ predict_all(Table, SourceRatings, Options) ->
     %fprof:trace(stop),
     format_prediction_result(Result, SourceRatings, Options).
 
+
+%%% @private
+predict_all_impl2(Table, SourceRatings) ->
 %predict_all_impl1(Table, SourceRatings) ->
 %    % this implementation is not efficient
 %    {atomic, Result} = mnesia:transaction(fun() -> adv_items:fold(
@@ -344,9 +348,6 @@ predict_all(Table, SourceRatings, Options) ->
 %        []
 %    ) end),
 %    Result.
-
-%%% @private
-predict_all_impl2(Table, SourceRatings) ->
     Dict = adv_ratings:fold_ratings(
         fun(ID, {CVal,_CData}, Acc) ->
             %following is get_col(Table, Col) + adding CVal
@@ -501,27 +502,71 @@ print_debug(Table) ->
     ).
 
 
+%dirty_update_record(Table, ItemRow, ItemCol, Updater, Default) ->
+%    F = fun() ->
+%        dirty_update_record_inmnesia(
+%            Table, ItemRow, ItemCol, Updater, Default
+%        )
+%    end,
+%    mnesia:async_dirty(F),
+%    ok.
+%
+%dirty_update_record_inmnesia(Table, ItemRow, ItemCol, Updater, Default)
+%    when
+%        ItemCol > ItemRow % symmetric matrix
+%    ->
+%    %Wild = mnesia:table_info(Table, wild_pattern),
+%    QR = mnesia:dirty_match_object(
+%        Table,
+%        #slnscore{row_item = ItemRow, col_item = ItemCol, _ = '_'}
+%    ),
+%    case QR of
+%        [] ->
+%            % no previsous value, use default
+%            mnesia:dirty_write(Table, Default());
+%        [Record] ->
+%            NewRecord = Updater(Record),
+%            ok = mnesia:dirty_delete_object(Table, Record),
+%            mnesia:dirty_write(Table, NewRecord);
+%        Any ->
+%            ?ERROR(
+%                "DB error or more than one result for cell (~B,~B)",
+%                [ItemRow,ItemCol],
+%                Any
+%            )
+%    end.
+
+update_record(Table, ItemRow, ItemCol, Updater, Default) ->
+    F = fun() ->
+        update_record_inmnesia(
+            Table, ItemRow, ItemCol, Updater, Default
+        )
+    end,
+    {atomic, _} = mnesia:transaction(F),
+    ok.
+
 update_record_inmnesia(Table, ItemRow, ItemCol, Updater, Default)
     when
         ItemCol > ItemRow % symmetric matrix
     ->
-    QH = qlc:q([R ||
-        R <- mnesia:table(Table),
-        R#slnscore.row_item =:= ItemRow,
-        R#slnscore.col_item =:= ItemCol
-    ]),
-    case qlc:e(QH) of
+    %Wild = mnesia:table_info(Table, wild_pattern),
+    QR = mnesia:match_object(
+        Table,
+        #slnscore{row_item = ItemRow, col_item = ItemCol, _ = '_'},
+        sticky_write
+    ),
+    case QR of
         [] ->
             % no previsous value, use default
             mnesia:write(Table, Default(), write);
         [Record] ->
             NewRecord = Updater(Record),
-            ok = mnesia:delete_object(Table, Record, write),
+            ok = mnesia:delete_object(Table, Record, sticky_write),
             mnesia:write(Table, NewRecord, write);
         Any ->
             ?ERROR(
-                "DB error or more than one result in query [~s]",
-                [qlc:info(QH)],
+                "DB error or more than one result for cell (~B,~B)",
+                [ItemRow,ItemCol],
                 Any
             )
     end.

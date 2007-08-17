@@ -42,7 +42,9 @@
     save_files/0,
     save_files/1,
     rate/3,
+    rate_id/3,
     async_rate/3,
+    async_rate_id/3,
     rate/4,
     recommend_all/1,
     recommend_all/2
@@ -143,9 +145,24 @@ rate(Source, Item, Rating={_RatingValue, _RatingData}) ->
         OldRatings
     ).
 
+rate_id(SourceID, ItemID, Rating={_RatingValue, _RatingData}) ->
+    % TODO: this OldRatings is not necessary!
+    % adv_predictions should have a better API and not require it!
+    OldRatings = adv_ratings:get_ratings(SourceID),
+    adv_ratings:set_rating(SourceID, ItemID, Rating),
+    adv_predictions:update_rating(
+        SourceID,
+        ItemID,
+        Rating,
+        OldRatings
+    ).
+
 async_rate(Source, Item, Rating={_RatingValue, _RatingData}) ->
     {ok, _IsSrcInserted, SourceID} = adv_sources:insert_new(Source, no_data),
     {ok, _IsItmInserted, ItemID} = adv_items:insert_new(Item, no_data),
+    adv_ratings:set_rating(SourceID, ItemID, Rating).
+
+async_rate_id(SourceID, ItemID, Rating={_RatingValue, _RatingData}) ->
     adv_ratings:set_rating(SourceID, ItemID, Rating).
 
 %%% @doc  Update a rating from a SourceID about a ItemID.
@@ -231,24 +248,25 @@ recommend_all(SourceKey, Options)
 
 % ~~ Implementation: Behaviour callbacks
 
-%%% @doc  Start the OTP application (run main supervisor).
+%%% @doc  Start adviserl OTP application and Mnesia if not running.
 %%% @see  adv_adviserl_sup:start_link/0
 %%% @end
 start(_StartType, _StartArgs) ->
+    % no need for a process to init mnesia (and don't no how to include it)
+    MnesiaConfig = adv_config:get_mnesia_config(),
+    ok = adv_mnesia:init(MnesiaConfig),
     % run the main supervisor
-    Status = adv_adviserl_sup:start_link(),
-    %load_files(),
-    Status.
+    adv_adviserl_sup:start_link().
 
 prep_stop(State) ->
     %save_files(),
     State.
 
-%%% @doc  Stop the OTP application.
-%%% @spec (State) -> State
+%%% @doc  Stop adviserl OTP application and Mnesia if started by init.
+%%% @spec (State) -> ok | {error, Error}
 %%% @end
 stop(State) ->
-    % close the main supervisor
+    ?DEBUG("adviserl stopped.", []),
     State.
 
 
