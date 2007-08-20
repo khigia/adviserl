@@ -37,10 +37,6 @@
 -export([
     start_app/0,
     stop_node/1,
-    load_files/0,
-    load_files/1,
-    save_files/0,
-    save_files/1,
     rate/3,
     rate_id/3,
     async_rate/3,
@@ -83,44 +79,6 @@ stop_node([Node]) ->
             ?WARNING("Can't locate application/node: ~s.", [Reason])
     end,
     init:stop().
-
-%% @spec load_files() -> ok | {error, Reason::string()}
-%%
-%% @doc Read backup data from files specified in configuration.
-%%
-%% WARNING: may result in inconsistent system if any server is processing
-%% other request during the loading.
-load_files() ->
-    apply_to_files_spec(fun load_files/1).
-
-%% @spec load_files(FilesSpec) -> ok | {error, Reason}
-%%
-%% @doc Read backup data from files.
-load_files(Spec = {_Items, _Sources, _Ratings, _Predictions, _Options}) ->
-    %TODO if any of them failed, the whole system become inconsistent!
-    %TODO the whole system become inconsistent during the load!!!
-    %TODO nothing is done to protect the system: the whole system may become inconsistent if it receive other request during the load (servers are concurrent)
-    %solution? all server should have a pause state, so that everybody is set to pause before to load, then resume afterward
-    apply_to_files(Spec, load_file). %TODO for each server!
-
-%% @spec save_files() -> ok | {error, Reason::string()}
-%%
-%% @doc Write backup data into files specified in configuration.
-%%
-%% WARNING: may result in inconsistent system if any server is processing
-%% other request during the save.
-save_files() ->
-    apply_to_files_spec(fun save_files/1).
-
-%% @spec save_files(FilesSpec) -> ok | {error, Reason::string()}
-%%
-%% @doc Write backup data into files.
-save_files(Spec = {_Items, _Sources, _Ratings, _Predictions, _Options}) ->
-    %TODO if any of them failed, the whole system become inconsistent! and may crash previous state also!!!
-    %solution?: using a temporary folder to save then copy in real one if all is ok.
-    %TODO nothing is done to protect the system: the whole system may become inconsistent if it receive other request during the save (servers are concurrent)
-    %solution? all server should have a pause state, so that everybody is set to pause before to save, then resume afterward
-    apply_to_files(Spec, save_file). %TODO for each server!
 
 %%% @doc  Add or change a rating from a SourceID about a ItemID.
 %%% If SourceID or ItemID are not integer, ID are retrieve from
@@ -252,9 +210,8 @@ recommend_all(SourceKey, Options)
 %%% @see  adv_adviserl_sup:start_link/0
 %%% @end
 start(_StartType, _StartArgs) ->
-    % no need for a process to init mnesia (and don't no how to include it)
-    MnesiaConfig = adv_config:get_mnesia_config(),
-    ok = adv_mnesia:init(MnesiaConfig),
+    % no need for a process to init mnesia (and don't know how to include it)
+    ok = adv_mnesia:init(),
     % run the main supervisor
     adv_adviserl_sup:start_link().
 
@@ -289,38 +246,6 @@ locate_node(MaybeLocalNode) ->
                             " on host " ++ net_adm:localhost()
                     }
             end
-    end.
-
-apply_to_files_spec(FilesFun) ->
-    case adv_config:get_data_files_spec() of
-        {ok, FilesSpec} ->
-            FilesFun(FilesSpec);
-        Err = {error, _Reason} ->
-            Err
-    end.
-
-apply_to_files({Items, Sources, Ratings, Predictions, Options}, ModFun) ->
-    Located = adv_util:locate_files(
-        [Items, Sources, Ratings, Predictions],
-        Options
-    ),
-    case Located of
-        {ok, Files=[_IF, _SF, _RF, _PF]} ->
-            lists:foldl(
-                fun
-                    ({_Mod, _File}, Err = {error, _Reason}) ->
-                        Err;
-                    ({Mod, File}, ok) ->
-                        Mod:ModFun(File, Options)%TODO return ok|{error,R}
-                end,
-                ok,
-                lists:zip(
-                    [adv_items, adv_sources, adv_ratings, adv_predictions],
-                    Files
-                )
-            );
-        Err ->
-            Err
     end.
 
 recommend_all_key(SourceKey, Options) ->

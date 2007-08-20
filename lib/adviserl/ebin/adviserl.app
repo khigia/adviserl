@@ -38,7 +38,8 @@
     ]}},
     {env, [
         {mnesia, [
-            {dir, "./data/mnesia-adviserl/"}
+            {dir, "./data/mnesia-adviserl/"},
+            {backup, "mnesia-adviserl-backup.dat"}
         ]},
         {sources,     {adv_data_mnesia,    [adv_sources]}},
         {items,       {adv_data_mnesia,    [adv_items]}},
