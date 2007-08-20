@@ -3,16 +3,31 @@
     {vsn, "0.2"},
     {modules, [
         adv_adviserl_sup,
+        adv_api,
+        adv_array_ext,
+        adv_config,
+        adv_data_ets,
+        adv_data_mnesia,
         adv_items,
-        adv_ratings,
         adv_mat_dm,
         adv_mat_sm,
-        adv_array_ext,
-        adv_util,
+        adv_mnesia,
+        adv_predictions,
+        adv_ratings,
+        adv_ratings_dod,
+        adv_ratings_mnesia,
+        adv_slone_mnesia,
+        adv_slone_smdod,
+        adv_sources,
         adv_types,
+        adv_util,
         adviserl
     ]},
     {registered, [
+        adv_sources,
+        adv_items,
+        adv_ratings,
+        adv_predictions
     ]},
     {applications, [
         kernel,
@@ -25,9 +40,9 @@
         {mnesia, [
             {dir, "./data/mnesia-adviserl/"}
         ]},
-        {sources,     {adv_data_mnesia,    [advtest_sources]}},
-        {items,       {adv_data_mnesia,    [advtest_items]}},
-        {ratings,     {adv_ratings_mnesia, [advtest_ratings]}},
-        {predictions, {adv_slone_mnesia,   [advtest_predictions]}}
+        {sources,     {adv_data_mnesia,    [adv_sources]}},
+        {items,       {adv_data_mnesia,    [adv_items]}},
+        {ratings,     {adv_ratings_mnesia, [adv_ratings]}},
+        {predictions, {adv_slone_mnesia,   [adv_predictions]}}
     ]}
 ]}.
