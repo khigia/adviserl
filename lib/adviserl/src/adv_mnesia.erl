@@ -37,14 +37,18 @@
 
 %% @spec init(PropertyList) -> ok | {error, Reason}
 init(Options) ->
-    Dir = proplists:get_value(dir, Options),
+    Dir = filename:absname(proplists:get_value(dir, Options)),
     ok = case mnesia:system_info(is_running) of
         yes ->
-            case mnesia:system_info(directory) of
+            MnesiaDir = filename:absname(mnesia:system_info(directory)),
+            case MnesiaDir of
                 Dir ->
                     ok;
                 _ ->
-                    {error, "mnesia application already running with different configuration"}
+                    {error, io_lib:format(
+                        "mnesia application already running with different directory configuration [expected: ~s, got:~s]",
+                        [Dir, MnesiaDir]
+                    )}
             end;
         no ->
             ?DEBUG("Starting mnesia", []),
