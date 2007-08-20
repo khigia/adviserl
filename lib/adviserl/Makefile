@@ -64,7 +64,7 @@ logs:
 .PHONY : devbuild
 devbuild: subtargets_build
 	@echo "==== Compiling application ===="
-	${CMD_ERL} -noshell ${ERLPATH} -eval "make:all([${BUILDOPT_DEV}])" -s init stop
+	${CMD_ERL} -noshell ${ERLPATH} -eval "up_to_date = make:all([${BUILDOPT_DEV}])." -s init stop
 	@echo
 
 .PHONY : test
@@ -128,7 +128,7 @@ clean: subtargets_clean
 	@rm -vf test/*.beam
 	@rm -vf log/*
 	@touch doc/remove.me # ensure next command does not failed
-	@ls -1 -I *.edoc -I *.txt doc | sed -e 's#\(.*\)#doc/\1#' | xargs rm -v
+	@ls -1 -I *.edoc -I *.txt -I figure doc | sed -e 's#\(.*\)#doc/\1#' | xargs rm -v
 	@echo
 
 

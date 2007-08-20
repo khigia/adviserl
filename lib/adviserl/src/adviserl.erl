@@ -42,6 +42,9 @@
     save_files/0,
     save_files/1,
     rate/3,
+    rate_id/3,
+    async_rate/3,
+    async_rate_id/3,
     rate/4,
     recommend_all/1,
     recommend_all/2
@@ -128,11 +131,9 @@ save_files(Spec = {_Items, _Sources, _Ratings, _Predictions, _Options}) ->
 %%% the code itself could implement some kind of automatic call back.
 %%% Also, get,set and update imply 3 lookup for sourceID ratings!!!
 %%% @end
-rate(SourceID, ItemID, Rating={_RatingValue, _RatingData})
-    when
-        is_integer(SourceID),
-        is_integer(ItemID)
-    ->
+rate(Source, Item, Rating={_RatingValue, _RatingData}) ->
+    {ok, _IsSrcInserted, SourceID} = adv_sources:insert_new(Source, no_data),
+    {ok, _IsItmInserted, ItemID} = adv_items:insert_new(Item, no_data),
     % TODO: this OldRatings is not necessary!
     % adv_predictions should have a better API and not require it!
     OldRatings = adv_ratings:get_ratings(SourceID),
@@ -142,13 +143,27 @@ rate(SourceID, ItemID, Rating={_RatingValue, _RatingData})
         ItemID,
         Rating,
         OldRatings
-    );
-rate(Source, Item, Rating) when not is_integer(Source) ->
-    {_IsInserted, ID} = adv_sources:insert_new(Source, no_data),
-    rate(ID, Item, Rating);
-rate(Source, Item, Rating) when not is_integer(Item) ->
-    {_IsInserted, ID} = adv_items:insert_new(Item, no_data),
-    rate(Source, ID, Rating).
+    ).
+
+rate_id(SourceID, ItemID, Rating={_RatingValue, _RatingData}) ->
+    % TODO: this OldRatings is not necessary!
+    % adv_predictions should have a better API and not require it!
+    OldRatings = adv_ratings:get_ratings(SourceID),
+    adv_ratings:set_rating(SourceID, ItemID, Rating),
+    adv_predictions:update_rating(
+        SourceID,
+        ItemID,
+        Rating,
+        OldRatings
+    ).
+
+async_rate(Source, Item, Rating={_RatingValue, _RatingData}) ->
+    {ok, _IsSrcInserted, SourceID} = adv_sources:insert_new(Source, no_data),
+    {ok, _IsItmInserted, ItemID} = adv_items:insert_new(Item, no_data),
+    adv_ratings:set_rating(SourceID, ItemID, Rating).
+
+async_rate_id(SourceID, ItemID, Rating={_RatingValue, _RatingData}) ->
+    adv_ratings:set_rating(SourceID, ItemID, Rating).
 
 %%% @doc  Update a rating from a SourceID about a ItemID.
 %%% If SourceID or ItemID are not integer, ID are retrieve from
@@ -159,11 +174,9 @@ rate(Source, Item, Rating) when not is_integer(Item) ->
 %%% the code itself could implement some kind of automatic call back.
 %%% Also, get,set and update imply 3 lookup for sourceID ratings!!!
 %%% @end
-rate(SourceID, ItemID, Updater, Default)
-    when
-        is_integer(SourceID),
-        is_integer(ItemID)
-    ->
+rate(Source, Item, Updater, Default) ->
+    {ok, _IsSrcInserted, SourceID} = adv_sources:insert_new(Source, no_data),
+    {ok, _IsItmInserted, ItemID} = adv_items:insert_new(Item, no_data),
     % this OldRatings is not necessary!
     % items should have a better API and not require it!
     OldRatings = adv_ratings:get_ratings(SourceID),
@@ -174,60 +187,86 @@ rate(SourceID, ItemID, Updater, Default)
         ItemID,
         Rating,
         OldRatings
-    );
-rate(Source, Item, Updater, Default) when not is_integer(Source) ->
-    {_IsInserted, ID} = adv_sources:insert_new(Source, no_data),
-    rate(ID, Item, Updater, Default);
-rate(Source, Item, Updater, Default) when not is_integer(Item) ->
-    {_IsInserted, ID} = adv_items:insert_new(Item, no_data),
-    rate(Source, ID, Updater, Default).
+    ).
         
-%%% @doc  Retrieve prediction for each itemID with default options.
-%%% Call recommend_all/2 with default value for options (sorted and strict).
-%%% @see recommend_all/2
-recommend_all(IDOrRatings) ->
-    recommend_all(IDOrRatings, []).
+%% @spec recommend_all(IDOrKeyOrRatings) -> predictions() | {error,Reason}
+%% @doc  Retrieve prediction for each item, using default options.
+%% Call recommend_all/2 with default value for options (sorted and strict);
+%% See documentation of recommend_all/2 for interpretation of parameter.
+%% @see recommend_all/2
+recommend_all(IDOrKeyOrRatings) ->
+    recommend_all(IDOrKeyOrRatings, []).
 
-%%% @doc  Retrieve prediction for each itemID.
-%%%
-%%% If option sorted is true, sort predictions by decreasing values.
-%%%
-%%% If option strict is true, return only strictly positive predictions.
-%%% @spec (Source::sourceID()|[{itemID(), ratingValue()}], [Option]) -> predictions()|{error, Reason}
-%%%     Option = {no_sorted, bool()} | {no_strict, bool()} | {no_remove_known, bool()}
-%%% @end
-recommend_all(SourceID, Options) when is_integer(SourceID), is_list(Options) ->
-    case adv_ratings:get_ratings(SourceID) of
-        undefined ->
-            {error, "SourceID not recognized"};
-        Ratings ->
-            adv_predictions:predict_all(Ratings, Options)
-    end;
-recommend_all(RatingValues, Options) when is_list(RatingValues), is_list(Options) ->
-    Ratings = adv_ratings:from_list(RatingValues),
-    adv_predictions:predict_all(Ratings, Options).
+%% @spec recommend_all(Source, [Option]) -> predictions() | {error, Reason}
+%%     Source = sourceID() | [{itemID(), ratingValue()}] | term()
+%%     Option = {no_sorted, bool()}
+%%            | {no_strict, bool()}
+%%            | {no_remove_known, bool()}
+%%            | {output, id|key}
+%% @doc  Retrieve prediction for each itemID.
+%%
+%% Interpretation of Source depends on its type:
+%% <ul>
+%%     <li>if integer, Source is seen as ID;</li>
+%%     <li>if empty list or list beginning by one tuple, Source is seen as ratings;</li>
+%%     <li>else Source is seen as key.</li>
+%% </ul>
+%%
+%% Defaults options are
+%% <ul>
+%%     <li>`{no_sorted,false}': predictions are sorted by decreasing values; if true the sort may not be done.</li>
+%%     <li>`{no_strict,false}': return only strictly positive predictions; if true predictions may contain some item with null prediction score.</li>
+%%     <li>`{no_remove_known,false}': predictions contains only not rated items; if true predictions may contain already rated items.</li>
+%%     <li>`{no_key_lookup,false}': predictions is a list of item's keys; if true predictions is a list of item's internal ID (avoid one lookup per prediction).</li>
+%% </ul>
+recommend_all(SourceID, Options)
+    when
+        is_integer(SourceID),
+        is_list(Options)
+    ->
+    recommend_all_id(SourceID, Options);
+
+recommend_all(RatingValues=[], Options)
+    when
+        is_list(Options)
+    ->
+    recommend_all_ratings(RatingValues, Options);
+
+recommend_all(RatingValues=[Rating|_], Options)
+    when
+        is_tuple(Rating),
+        is_list(Options)
+    ->
+    recommend_all_ratings(RatingValues, Options);
+
+recommend_all(SourceKey, Options)
+    when
+        is_list(Options)
+    ->
+    recommend_all_key(SourceKey, Options).
 
 
 % ~~ Implementation: Behaviour callbacks
 
-%%% @doc  Start the OTP application (run main supervisor).
+%%% @doc  Start adviserl OTP application and Mnesia if not running.
 %%% @see  adv_adviserl_sup:start_link/0
 %%% @end
 start(_StartType, _StartArgs) ->
+    % no need for a process to init mnesia (and don't no how to include it)
+    MnesiaConfig = adv_config:get_mnesia_config(),
+    ok = adv_mnesia:init(MnesiaConfig),
     % run the main supervisor
-    Status = adv_adviserl_sup:start_link(),
-    %load_files(),
-    Status.
+    adv_adviserl_sup:start_link().
 
 prep_stop(State) ->
     %save_files(),
     State.
 
-%%% @doc  Stop the OTP application.
-%%% @spec (State) -> State
+%%% @doc  Stop adviserl OTP application and Mnesia if started by init.
+%%% @spec (State) -> ok | {error, Error}
 %%% @end
 stop(State) ->
-    % close the main supervisor
+    ?DEBUG("adviserl stopped.", []),
     State.
 
 
@@ -283,6 +322,49 @@ apply_to_files({Items, Sources, Ratings, Predictions, Options}, ModFun) ->
         Err ->
             Err
     end.
+
+recommend_all_key(SourceKey, Options) ->
+    case adv_sources:id_from_key(SourceKey) of
+        SourceID when is_integer(SourceID) ->
+            recommend_all_id(SourceID, Options);
+        _ ->
+            {error, unknown_source_key}
+    end.
+
+recommend_all_id(SourceID, Options) ->
+    case adv_ratings:get_ratings(SourceID) of
+        undefined ->
+            {error, unknown_source_id};
+        Ratings ->
+            predict_all(Ratings, Options)
+    end.
+
+recommend_all_ratings(RatingValues, Options) ->
+    Ratings = adv_ratings:from_list(RatingValues),
+    predict_all(Ratings, Options).
+
+predict_all(Ratings, Options) ->
+    Predictions0 = adv_predictions:predict_all(Ratings, Options),
+    Predictions1 = case proplists:get_bool(no_key_lookup, Options) of
+        false ->
+            %TODO those lookups could be done in one message to adv_items...
+            lists:reverse(lists:foldl(
+                fun({ItemID, Score}, Acc) ->
+                    case adv_items:key_from_id(ItemID) of
+                        {ok, Key} ->
+                            [{Key, Score}|Acc];
+                        _ ->
+                            Acc
+                    end
+                end,
+                [],
+                Predictions0
+            ));
+        _ ->
+            Predictions0
+    end,
+    Predictions1.
+
 
 % ~~ Unit tests
 -ifdef(EUNIT).

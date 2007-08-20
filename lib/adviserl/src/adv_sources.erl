@@ -62,6 +62,7 @@ insert_new(Key, Data) ->
         {insert_new, Key, Data}
     ).
 
+%% @spec id_from_key(Key::term()) -> ID::integer() | undefined
 id_from_key(Key) ->
     gen_server:call(
         ?MODULE,

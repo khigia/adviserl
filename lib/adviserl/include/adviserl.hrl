@@ -24,11 +24,27 @@
 
 % Global declaration
 
+-define(API_PNAME,         adv_api).
 -define(SOURCES_PNAME,     adv_sources).
 -define(ITEMS_PNAME,       adv_items).
 -define(RATINGS_PNAME,     adv_ratings).
 -define(PREDICTIONS_PNAME, adv_predictions).
 
+
+% Data structures
+
+-record(advdata, {
+    id,
+    key,
+    data
+}).
+
+-record(advrating, {
+    source,
+    item,
+    score,
+    data
+}).
 
 % Trace utilities
 

@@ -1,21 +1,29 @@
 @title Adviserl
-@version 0.1
+@version 0.2
 @copyright 2007 Affle Pvt. Ltd.
 @author Ludovic Coquelle <lcoquelle@gmail.com>
 
 @doc
 == Introduction ==
 
-Adviserl is a recommender system, which has been design originally to implement the Slope One algorithm, but should support different algorithms now.
+Adviserl is a recommender system.
+It has been design originally to implement the Slope One algorithm but should support different algorithms.
+Aim of the project is to provide necessary services to allow implementation of collaborative-filtering recommendations but also content-based recommendations.
 
 === What it does ===
 
-Adviserl application provides two services, one to manage ratings and the other to manage predicitons, as well as a bunch of functions to keep ratings and predictions data in sync (kind of local API):
+Adviserl application provides a single locale interface {@link adviserl}, as well as the same interface {@link adv_api} implementing a `gen_server' module.
+This interface allow to rate item ({@link adviserl:rate/3}) and to get recommendation ({@link adviserl:recommend_all/2}).
+
+This rely on few public services:
 <ul>
-    <li>'adv_ratings' store ratings information: one source (user) can rate any item by providing a integer rating value and any attached data (eg. timestamp...).</li>
-    <li>'adv_predictions' store predictions data: when a new rating is available, or a rating is updated, predictions is updated as well to maintain some statistics or covisitation data (this service uses a callback module to deals with data and currently a slope-one behavior module is implemented).</li>
-    <li>'adviserl' offer a bunch of interface functions enabling to coordinate actions on the two previous services; thus rating an item using those function will automatically call the predictions update; also prediction request will be dispatched from here.</li>
+    <li>{@link adv_sources} keep a list of all possible rating sources (e.g. users): a source structure is identified either by an ID (integer) used internally or by a provided key (any term), and this source structure also contains an opaque data term (e.g. user login timestamp, user age etc).</li>
+    <li>{@link adv_items} contains the same kind of data (ID, key, opaque data) as the previous service but for items.</li>
+    <li>{@link adv_ratings} store ratings information: one source (user) can rate any item by providing a integer rating value and any attached data (eg. timestamp...).</li>
+    <li>{@link adv_predictions} store predictions data: when a new rating is available, or a rating is updated, predictions is updated as well to maintain some statistics or covisitation data (e.g. a slope-one is provided).</li>
 </ul>
+
+Even if those services are public, it is recommended to use the {@link adviserl} interface to coordinate actions (e.g. adding a rating should trigger the prediction service to update its data).
 
 === Running / API ===
 
@@ -30,26 +38,26 @@ application:start(sasl),
 application:start(adviserl),
 
 % add some rating in the system
-adviserl:rate(1, 2,  {3, no_rating_data}), % user 1, item 2, value 3
-adviserl:rate(1, 4,  {5, no_rating_data}), % ...
-adviserl:rate(2, 2,  {1, no_rating_data}),
-adviserl:rate(2, 5,  {8, no_rating_data}),
-adviserl:rate(3, 4,  {3, no_rating_data}),
-adviserl:rate(3, 5,  {2, no_rating_data}),
-adviserl:rate(3, 12, {2, no_rating_data}),
+adviserl:rate(user1, item2,  {3, no_rating_data}), % user1 rate item2 with score value 3
+adviserl:rate(user1, item4,  {5, no_rating_data}), % ...
+adviserl:rate(user2, item2,  {1, no_rating_data}),
+adviserl:rate(user2, item5,  {8, no_rating_data}),
+adviserl:rate(user3, item4,  {3, no_rating_data}),
+adviserl:rate(user3, item5,  {2, no_rating_data}),
+adviserl:rate(user3, item12, {2, no_rating_data}),
 
 % some debug output to "see" the data
 adv_ratings:print_debug(),
 adv_predictions:print_debug(),
 
 % try some predictions
-adviserl:recommend_all(1), % prediction for user 1
-adviserl:recommend_all(2), % ... for user 2
-adviserl:recommend_all(3),
-adviserl:recommend_all(4),
+adviserl:recommend_all(user1), % prediction for user 1
+adviserl:recommend_all(user2), % ...
+adviserl:recommend_all(user3), % ...
+adviserl:recommend_all(user4), % unknown user => error
 adviserl:recommend_all([]), % for any user without rating!
-adviserl:recommend_all([{2,5}]), % for any user having those ratings
-adviserl:recommend_all([{4,5}]), % idem
+adviserl:recommend_all([{2,5}]), % for any user having those ratings (using item ID)
+adviserl:recommend_all([{4,5}]), % ...
 adviserl:recommend_all([{2,5},{4,5}]), % idem with multiple ratings
 adviserl:recommend_all([{3,5}]), % ... even if item is unknown
 
@@ -73,7 +81,7 @@ Main default target <em>all</em> build the application (target <em>build</em>) a
 make
 </pre>
 
-A secondary target <em>dev</em> is provided to build the application with debug options, then run some tests (require eunit [http://freshmeat.net/projects/eunit]) and finally proceeds with some code checks.
+A secondary target <em>dev</em> is provided to build the application with debug options, then run some tests (require eunit [http://freshmeat.net/projects/eunit], can be disable in Makefile configuration) and finally proceeds with some code checks (e.g. dialyzer).
 <pre>
 make dev
 </pre>
@@ -84,24 +92,8 @@ make clean
 </pre>
 
 == Architecture ==
-```
-                  +------------------------------------- + 
-                  |        adv_adviserl_sup              |
-                  +--.'--------------+-------------------+
-                   .'                |               
-                 .'                  |               
-   O-----------.'-----O        O-------+---------O       
-   | adv_ratings      |        | adv_predictions |
-   O------------------O        | + callback      |       
-                               O-----------------O       
 
-   (Each box is a process:
-       0-corner box denote workers
-       +-corner box are supervisors.
-   )
-'''
-
-<ul>
-<li> {@link adv_ratings} is a server to maintain ratings per source.</li>
-<li> {@link adv_predictions} is a server maintaining the prediction data and executing the prediction through a behaviour module configurated at initalization.</li>
-</ul>
+<div>
+    <div>View of a running supervision tree</div>
+    <div><img src="figure/suptree.png" /></div>
+</div>
