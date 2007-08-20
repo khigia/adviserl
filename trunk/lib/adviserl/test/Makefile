@@ -21,12 +21,13 @@ define run_test
 	@echo
 	@echo "**** Running test: $(strip $(1)) ****"
 	@echo
-	@${CMD_ERL} -noshell -pa ../ebin/ -pa ebin -kernel error_logger "{file, \"log/$(strip $(1))-kernel.log\"}" -sasl sasl_error_logger "{file, \"log/$(strip $(1))-sasl.log\"}" -s $(strip $(1)) start -s erlang halt
+	@${CMD_ERL} -noshell -pa ../ebin/ -pa ebin -kernel error_logger "{file, \"log/$(strip $(1))-kernel.log\"}" -sasl sasl_error_logger "{file, \"log/$(strip $(1))-sasl.log\"}" -s $(strip $(1)) start -s init stop
 	@echo
 endef
 
+
 build:
-	${CMD_ERL} -noshell -eval "make:all()" -s erlang halt
+	${CMD_ERL} -noshell -eval "make:all()" -s init stop
 
 clean:
 	@rm -rvf ebin/*.beam

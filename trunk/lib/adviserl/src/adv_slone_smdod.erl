@@ -282,6 +282,9 @@ update_items_del({Val1, _Data1}, {Val2, _Data2}, {Freq, Dev}) ->
 predict_all(SourceRatings, ItemsMatrix, Options) ->
     % hopefully this respect the weighted slope one algorithm
     %fprof:trace(start),
+    %BUG! not all item id have a row (the last one has none!) but may be
+    % referenced by any other! ... see ad_slone_mnesia to use adv_items
+    % instead of map per row
     Result = adv_mat_sm:map_per_partial_row(
         fun(PartialRow=#mat_row{line=LItem}) ->
             {Freq, Dev} = adv_ratings:fold_ratings(
@@ -290,27 +293,20 @@ predict_all(SourceRatings, ItemsMatrix, Options) ->
                         true ->
                             Acc;
                         _ ->
-                            case LItem > CItem of
+                            Cell = case LItem > CItem of
                                 true ->
-                                    case adv_mat_sm:get_partial_row_value(CItem, PartialRow) of
-                                        {ok, {RFreq, RDev}} ->
-                                            {
-                                                FreqAcc + RFreq,
-                                                DevAcc + RFreq * (RDev + CVal)
-                                            };
-                                        _ ->
-                                            Acc
-                                    end;
+                                    adv_mat_sm:get_partial_row_value(CItem, PartialRow);
                                 _ ->
-                                    case adv_mat_sm:get(LItem, CItem, ItemsMatrix) of
-                                        {ok, {ARFreq, ARDev}} ->
-                                            {
-                                                FreqAcc + ARFreq,
-                                                DevAcc + ARFreq * (ARDev + CVal)
-                                            };
-                                        error ->
-                                            Acc
-                                    end
+                                    adv_mat_sm:get(LItem, CItem, ItemsMatrix)
+                            end,
+                            case Cell of
+                                {ok, {RFreq, RDev}} ->
+                                    {
+                                        FreqAcc + RFreq,
+                                        DevAcc + RFreq * (RDev + CVal)
+                                    };
+                                _ ->
+                                    Acc
                             end
                     end
                 end,

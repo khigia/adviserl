@@ -24,6 +24,7 @@
 
 % ~~ Declaration: API
 -export([
+    get_mnesia_config/0,
     get_sources_behaviour/0,
     get_items_behaviour/0,
     get_ratings_behaviour/0,
@@ -39,6 +40,22 @@
 
 
 % ~~ Implementation: API
+
+%% @spec get_mnesia_config() -> PropertyList
+get_mnesia_config() ->
+    Options0 = case application:get_env(mnesia) of
+        {ok, R} ->
+            R;
+        _ ->
+            []
+    end,
+    Options1 = case proplists:is_defined(dir, Options0) of
+        true ->
+            Options0;
+        _ ->
+            [{dir,"./data/mnesia-adviserl"}|Options0]
+    end,
+    Options1.
 
 %% @spec get_sources_behaviour() -> {Module::atom(), Options::list()}
 %%
@@ -96,7 +113,7 @@ get_data_files_spec() ->
     case application:get_env(adviserl, data_files) of
         R = {ok, {_Items, _Source, _Ratings, _Predictions, _Options}} ->
             R;
-        Any ->
+        _Any ->
             {error, "Key 'data_files' not found in app config"}
     end.
             
@@ -113,7 +130,7 @@ get_data_files_spec() ->
 %% If Key is not found and application is defined, use Default and set this
 %% value in app environment.
 get_behaviour(Key, Default) ->
-    case application:get_env(Key) of
+    case application:get_env(adviserl, Key) of
         {ok, Result={_Mod, _Options}} ->
             Result;
         _ ->
