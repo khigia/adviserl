@@ -24,7 +24,7 @@
 
 % ~~ Declaration: API
 -export([
-    init/1
+    init/0
 ]).
 
 
@@ -35,9 +35,10 @@
 
 % ~~ Implementation: API
 
-%% @spec init(PropertyList) -> ok | {error, Reason}
-init(Options) ->
-    Dir = filename:absname(proplists:get_value(dir, Options)),
+%% @spec init() -> ok | {error, Reason}
+init() ->
+    MnesiaConfig = adv_config:get_mnesia_config(),
+    Dir = filename:absname(proplists:get_value(dir, MnesiaConfig)),
     ok = case mnesia:system_info(is_running) of
         yes ->
             MnesiaDir = filename:absname(mnesia:system_info(directory)),

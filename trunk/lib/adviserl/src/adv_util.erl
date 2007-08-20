@@ -25,9 +25,13 @@
 % ~~ Declaration: API
 -export([
     log/5,
-    locate_files/2,
     for_seq/3,
-    for_seq/4
+    for_seq/4,
+    load_app_files/0,
+    load_app_files/1,
+    save_app_files/0,
+    save_app_files/1,
+    locate_files/2
 ]).
 
 % ~~ Declaration: Internal
@@ -84,6 +88,66 @@ log(Module, Line, err, Msg, Params) ->
         [Module, Line] ++ Params
     ).
 
+%%% @doc  Apply a function on a sequence of items.
+%%% Equiv for_seq(Body, Start, End, 1)
+%%% @spec (BodyFun, Start, End) -> ok
+%%% @end
+for_seq(Body, Start, End) ->
+    for_seq(Body, Start, End, 1).
+
+%%% @doc  Apply a function on a sequence of items (items must be comparable
+%%% and support the addition operator).
+%%% Equivalent to lists:foreach(Body, lists:seq(Start, End, Incr)) but do not
+%%% construct the iteration list.
+%%% @spec (BodyFun, Start, End, Incr) -> ok
+%%% @end
+for_seq(Body, Start, End, Incr) ->
+    case Start < End of
+        true ->
+            Body(Start),
+            for_seq(Body, Start + Incr, End, Incr);
+        _ ->
+            ok
+    end.
+
+%% @spec load_app_files() -> ok | {error, Reason::string()}
+%%
+%% @doc Read backup data from files specified in configuration.
+%%
+%% WARNING: may result in inconsistent system if any server is processing
+%% other request during the loading.
+load_app_files() ->
+    apply_to_files_spec(fun load_app_files/1).
+
+%% @spec load_app_files(FilesSpec) -> ok | {error, Reason}
+%%
+%% @doc Read backup data from files.
+load_app_files(Spec = {_Items, _Sources, _Ratings, _Predictions, _Options}) ->
+    %TODO if any of them failed, the whole system become inconsistent!
+    %TODO the whole system become inconsistent during the load!!!
+    %TODO nothing is done to protect the system: the whole system may become inconsistent if it receive other request during the load (servers are concurrent)
+    %solution? all server should have a pause state, so that everybody is set to pause before to load, then resume afterward
+    apply_to_files(Spec, load_file). %TODO for each server!
+
+%% @spec save_app_files() -> ok | {error, Reason::string()}
+%%
+%% @doc Write backup data into files specified in configuration.
+%%
+%% WARNING: may result in inconsistent system if any server is processing
+%% other request during the save.
+save_app_files() ->
+    apply_to_files_spec(fun save_app_files/1).
+
+%% @spec save_app_files(FilesSpec) -> ok | {error, Reason::string()}
+%%
+%% @doc Write backup data into files.
+save_app_files(Spec = {_Items, _Sources, _Ratings, _Predictions, _Options}) ->
+    %TODO if any of them failed, the whole system become inconsistent! and may crash previous state also!!!
+    %solution?: using a temporary folder to save then copy in real one if all is ok.
+    %TODO nothing is done to protect the system: the whole system may become inconsistent if it receive other request during the save (servers are concurrent)
+    %solution? all server should have a pause state, so that everybody is set to pause before to save, then resume afterward
+    apply_to_files(Spec, save_file). %TODO for each server!
+
 %% @spec locate_files([File], [Option]) -> {ok, [AbsFile]}|{error,Reason}
 %%     File = {relative_file, Filename::string()} |
 %%            {absolute_file, Filename::string()}
@@ -112,27 +176,6 @@ locate_files(Files, Options) ->
             )
     end.
 
-%%% @doc  Apply a function on a sequence of items.
-%%% Equiv for_seq(Body, Start, End, 1)
-%%% @spec (BodyFun, Start, End) -> ok
-%%% @end
-for_seq(Body, Start, End) ->
-    for_seq(Body, Start, End, 1).
-
-%%% @doc  Apply a function on a sequence of items (items must be comparable
-%%% and support the addition operator).
-%%% Equivalent to lists:foreach(Body, lists:seq(Start, End, Incr)) but do not
-%%% construct the iteration list.
-%%% @spec (BodyFun, Start, End, Incr) -> ok
-%%% @end
-for_seq(Body, Start, End, Incr) ->
-    case Start < End of
-        true ->
-            Body(Start),
-            for_seq(Body, Start + Incr, End, Incr);
-        _ ->
-            ok
-    end.
 
 % ~~ Implementation: Internal
 
@@ -195,5 +238,37 @@ locate_file({absolute_file, File}, _Path) ->
                 "Cannot ensure directory for '~s': ~w",
                 [File, Reason1]
             )}
+    end.
+
+apply_to_files_spec(FilesFun) ->
+    case adv_config:get_data_files_spec() of
+        {ok, FilesSpec} ->
+            FilesFun(FilesSpec);
+        Err = {error, _Reason} ->
+            Err
+    end.
+
+apply_to_files({Items, Sources, Ratings, Predictions, Options}, ModFun) ->
+    Located = adv_util:locate_files(
+        [Items, Sources, Ratings, Predictions],
+        Options
+    ),
+    case Located of
+        {ok, Files=[_IF, _SF, _RF, _PF]} ->
+            lists:foldl(
+                fun
+                    ({_Mod, _File}, Err = {error, _Reason}) ->
+                        Err;
+                    ({Mod, File}, ok) ->
+                        Mod:ModFun(File, Options)%TODO return ok|{error,R}
+                end,
+                ok,
+                lists:zip(
+                    [adv_items, adv_sources, adv_ratings, adv_predictions],
+                    Files
+                )
+            );
+        Err ->
+            Err
     end.
 
