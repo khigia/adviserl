@@ -210,8 +210,6 @@ recommend_all(SourceKey, Options)
 %%% @see  adv_adviserl_sup:start_link/0
 %%% @end
 start(_StartType, _StartArgs) ->
-    % no need for a process to init mnesia (and don't know how to include it)
-    ok = adv_mnesia:init(),
     % run the main supervisor
     adv_adviserl_sup:start_link().
 
