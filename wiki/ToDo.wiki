@@ -16,6 +16,7 @@
  * API
      * External
          * consistant backup of the whole system is tricky problem (need services synchronization)
+         * is it a good idea to strat mnesia as embeded application (using mnesia_sup)?
          * need to support multiple predictors for the same set of data (multiple prediction callback module): this enable to have multiple prediction algorithms for the same set of data
          * if ratings need to be kept in memory for fast access, maybe the related data do not need to ... a new rating plugin could kept ratings scores in memory and rating data in another disc-based table (this also make data optional ... shall we remove rating data completely from API!?) ...
          * add some options to bin/adv-recommendall-source [-n api_node] [--sorted] [-n 5] 12 => print 2 numbers (itemID and score) by line
