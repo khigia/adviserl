@@ -24,7 +24,8 @@
 
 % ~~ Declaration: API
 -export([
-    init/0
+    init/0,
+    backup/0
 ]).
 
 
@@ -56,9 +57,68 @@ init() ->
             ok = filelib:ensure_dir(Dir),
             ok = application:set_env(mnesia, dir, Dir),
             mnesia:create_schema([node()]), %TODO may fail, don't care (already exists)?
-            application:start(mnesia)
+            R = application:start(mnesia),
+            restore(),
+            R
+    end.
+
+%% @spec backup() -> ok | {error, Reason}
+backup() ->
+    MnesiaConfig = adv_config:get_mnesia_config(),
+    BackupConfig = proplists:get_value(backup, MnesiaConfig),
+    case BackupConfig of
+        undefined ->
+            {error, io_lib:format(
+                "no backup defined in application environment: ~w",
+                [MnesiaConfig]
+            )};
+        Backup ->
+            case adv_util:proplists_get_values([file, tables], Backup) of
+                [File, Tables] ->
+                    backup(File, Tables);
+                Err = {error, _} ->
+                    Err
+            end
     end.
 
 
 % ~~ Implementation: Internal
-%empty
+
+backup(File, Tables) ->
+    {ok, Name, _Nodes} = mnesia:activate_checkpoint([
+        {max, Tables},
+        {ram_overrides_dump,true}
+    ]),
+    R = mnesia:backup_checkpoint(Name, File),
+    ok = mnesia:deactivate_checkpoint(Name),
+    R.
+
+restore() ->
+    % not exported, because dangerous of restoring data while services are running (at least each service need to update its state, and synchrnization is required)
+    % restore is thus done only at startup, before adviserl services run
+    MnesiaConfig = adv_config:get_mnesia_config(),
+    BackupConfig = proplists:get_value(backup, MnesiaConfig),
+    case BackupConfig of
+        undefined ->
+            ?INFO("No backup to restore", []),
+            ok;
+        Backup ->
+            case adv_util:proplists_get_values([file, tables], Backup) of
+                [File, Tables] ->
+                    % testing the file may avoid to wait for tables
+                    case filelib:is_file(File) of
+                        true ->
+                            ok = mnesia:wait_for_tables(Tables, 5000),
+                            St = mnesia:restore(File, [{recreate_tables, Tables}]),
+                            ?INFO("Backup '~s' restore status:~w", [File, St]),
+                            St;
+                        _ ->
+                            ?WARNING("Cannot reach backup file:~s", [File]),
+                            {error, not_a_file}
+                    end;
+                Err = {error, _} ->
+                    ?WARNING("Backup definition cannot be restored:~w", [Err]),
+                    Err
+            end
+    end.
+

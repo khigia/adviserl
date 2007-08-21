@@ -43,7 +43,7 @@
 
 %% @spec get_mnesia_config() -> PropertyList
 get_mnesia_config() ->
-    Options0 = case application:get_env(mnesia) of
+    Options0 = case application:get_env(adviserl, mnesia) of
         {ok, R} ->
             R;
         _ ->

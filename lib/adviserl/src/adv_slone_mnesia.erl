@@ -71,12 +71,10 @@ init([TableName]) ->
     {ok, State}.
 
 handle_call({load_file, _File, _Options}, _From, State) ->
-    % mnesia automaticaly restore dumps
-    {reply, ok, State};
+    {reply, {error, "no implementation: use mnesia backup"}, State};
 
-handle_call({save_file, _File, _Options}, _From, State = #st{table = Tbl}) ->
-    % simple dump
-    {reply, mnesia:dump_tables([Tbl]), State};
+handle_call({save_file, _File, _Options}, _From, State) ->
+    {reply, {error, "no implementation: use mnesia backup"}, State};
 
 handle_call(init, _From, State = #st{table = Tbl}) ->
     R = init_predictions(Tbl),

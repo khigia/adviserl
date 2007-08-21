@@ -62,11 +62,11 @@ init([TableName]) ->
     }}.
 
 handle_call({load_file, _File, _Options}, _From, State) ->
-    % mnesia automaticaly restore dumps
-    {reply, ok, State};
-handle_call({save_file, _File, _Options}, _From, St = #st{table=TableName}) ->
-    % simple dump
-    {reply, mnesia:dump_tables([TableName]), St};
+    {reply, {error, "no implementation: use mnesia backup"}, State};
+
+handle_call({save_file, _File, _Options}, _From, State) ->
+    {reply, {error, "no implementation: use mnesia backup"}, State};
+
 handle_call({insert_new, Key, Data}, _From, State = #st{table=TableName}) ->
     % following may fail but this is a system failure,
     % should not be send back to user
@@ -84,6 +84,7 @@ handle_call({insert_new, Key, Data}, _From, State = #st{table=TableName}) ->
         end
     end),
     {reply, Result, NewState};
+
 handle_call({id_from_key, Key}, _From, State = #st{table=TableName}) ->
     % following may fail but this is a system failure,
     % should not be send back to user
@@ -97,6 +98,7 @@ handle_call({id_from_key, Key}, _From, State = #st{table=TableName}) ->
         end
     end),
     {reply, Result, State};
+
 handle_call({object_from_key, Key}, _From, State = #st{table=TableName}) ->
     % following may fail but this is a system failure,
     % should not be send back to user
@@ -110,6 +112,7 @@ handle_call({object_from_key, Key}, _From, State = #st{table=TableName}) ->
         end
     end),
     {reply, Result, State};
+
 handle_call({key_from_id, ID}, _From, State = #st{table=TableName}) ->
     % following may fail but this is a system failure,
     % should not be send back to user
@@ -123,6 +126,7 @@ handle_call({key_from_id, ID}, _From, State = #st{table=TableName}) ->
         end
     end),
     {reply, Result, State};
+
 handle_call({object_from_id, ID}, _From, State = #st{table=TableName}) ->
     % following may fail but this is a system failure,
     % should not be send back to user
@@ -136,6 +140,7 @@ handle_call({object_from_id, ID}, _From, State = #st{table=TableName}) ->
         end
     end),
     {reply, Result, State};
+
 handle_call({fold, Fun, Acc}, _From, State = #st{table=TableName}) ->
     F = fun(#advdata{id = ID, key = Key, data = Data}, Acc0) ->
         Fun(ID, Key, Data, Acc0)
@@ -144,6 +149,7 @@ handle_call({fold, Fun, Acc}, _From, State = #st{table=TableName}) ->
         mnesia:foldl(F, Acc, TableName)
     end),
     {reply, Result, State};
+
 handle_call(_Request, _From, State) ->
     {reply, unknown_call, State}.
 
@@ -174,8 +180,8 @@ init_table(TableName) ->
         {index, [key]}
     ]),
     Prep = fun() ->
+        ok = mnesia:wait_for_tables([TableName], 20000),
         {atomic, MaxID} = mnesia:transaction(fun() ->
-            ok = mnesia:wait_for_tables([TableName], 20000),
             QH = qlc:q([R#advdata.id || R <- mnesia:table(TableName)]),
             lists:max([0 | qlc:e(QH)])
         end),

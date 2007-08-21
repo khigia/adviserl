@@ -27,6 +27,7 @@
     log/5,
     for_seq/3,
     for_seq/4,
+    proplists_get_values/2,
     load_app_files/0,
     load_app_files/1,
     save_app_files/0,
@@ -109,6 +110,26 @@ for_seq(Body, Start, End, Incr) ->
         _ ->
             ok
     end.
+
+%% @spec proplists_get_values(Keys, Proplist) -> [Values] | {error, Reason}
+%% @doc From a list of Keys return a list of values from Proplist.
+%% If any of those Keys is not found, return error tuple.
+proplists_get_values(Keys, Proplist) ->
+    lists:foldl(
+        fun
+            (_Entry, Err = {error,_}) ->
+                Err;
+            (Entry, Acc) ->
+                case proplists:get_value(Entry, Proplist) of
+                    undefined ->
+                        {error, io_lib:format("key ~w not found", [Entry])};
+                    Value ->
+                        [Value|Acc]
+                end
+        end,
+        [],
+        lists:reverse(Keys)
+    ).
 
 %% @spec load_app_files() -> ok | {error, Reason::string()}
 %%
