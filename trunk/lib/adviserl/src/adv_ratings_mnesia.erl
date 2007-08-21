@@ -124,13 +124,10 @@ init([TableName]) ->
     {ok, State}.
 
 handle_call({load_file, _File, _Options}, _From, State) ->
-    % mnesia automaticaly restore dumps
-    {reply, ok, State};
+    {reply, {error, "no implementation: use mnesia backup"}, State};
 
 handle_call({save_file, _File, _Options}, _From, State) ->
-    % simple dump
-    TableName = State#st.table,
-    {reply, mnesia:dump_tables([TableName]), State};
+    {reply, {error, "no implementation: use mnesia backup"}, State};
 
 handle_call({set_rating, SourceID, ItemID, Rating}, _From, State) ->
     TableName = State#st.table,
@@ -164,7 +161,7 @@ handle_call(stop, _From, State) ->
     {stop, "Stop requested", ok, State};
 
 handle_call(_Request, _From, State) ->
-    {reply, ok, State}.
+    {reply, unknown_call, State}.
 
 handle_cast(_Request, State) ->
     {noreply, State}.
@@ -329,8 +326,7 @@ fold_sources(TableName, Fun, Acc) ->
 
 %%% @hidden
 pub_init() ->
-    MnesiaConfig = adv_config:get_mnesia_config(),
-    ok = adv_mnesia:init(MnesiaConfig),
+    ok = adv_mnesia:init(),
     gen_server:start_link(
         {local, ?RATINGS_PNAME},
         ?MODULE,

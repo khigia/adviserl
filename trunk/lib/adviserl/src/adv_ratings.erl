@@ -57,20 +57,22 @@
 % ~~ Implementation: API
 
 load_file(File, Options) ->
-    gen_server:call(
+    R = gen_server:call(
         ?RATINGS_PNAME,
         {load_file, File, Options},
         infinity
     ),
-    ?INFO("file loaded", []).
+    ?INFO("file load status: ~w", [R]),
+    R.
 
 save_file(File, Options) ->
-    gen_server:call(
+    R = gen_server:call(
         ?RATINGS_PNAME,
         {save_file, File, Options},
         infinity
     ),
-    ?INFO("file saved", []).
+    ?INFO("file save status: ~w", [R]),
+    R.
 
 %%% @spec get_ratings(sourceID()) -> {ok, ratings()}|undefined
 %%%
