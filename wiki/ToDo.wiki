@@ -1,9 +1,9 @@
 #summary List of TODO (not features)
  * Deployment / build
+     * OTP release (will run mnesia automatically)
      * ? sinan build system ... create dependancy with a repository?
      * ? CEAN packaging
      * look at some windows/mac build system (see with sinan)
-     * OTP release
  * Documentation
      * main doc not uptodate with current code (adv_source, adv_item, load/save...)
      * document scripts in bin folder
@@ -12,10 +12,12 @@
          * API examples
          * example/API/plugin(?) to clean the ratings with a given timestamp too old (use example of rating data)
          * example of using MySQL and some reporting data (how to implement a realtime callback?)
+         * example to use MySQL to implement a sources' service (an external user database)
  * API
      * External
-         * the automatic change from integer to key ID in adviserl:rate() is REALLY confusing: need to introduce some record source{id=, key=, data=}... same for item... this change all modules API but should make things more clear (anyway with mnesia we need the records) (also in teh output of recommend it should be more clear what we get)
+         * consistant backup of the whole system is tricky problem (need services synchronization)
          * need to support multiple predictors for the same set of data (multiple prediction callback module): this enable to have multiple prediction algorithms for the same set of data
+         * if ratings need to be kept in memory for fast access, maybe the related data do not need to ... a new rating plugin could kept ratings scores in memory and rating data in another disc-based table (this also make data optional ... shall we remove rating data completely from API!?) ...
          * add some options to bin/adv-recommendall-source [-n api_node] [--sorted] [-n 5] 12 => print 2 numbers (itemID and score) by line
          * python interface to talk with adviserl_api (http://www.lysator.liu.se/~tab/erlang/py_interface)
          * HTTP interface (yaws/inets or see http://wiki.trapexit.org/index.php/A_fast_web_server_demonstrating_some_undocumented_Erlang_features)
@@ -23,13 +25,12 @@
          * adviserl:info() to get global info (system alive, number of items, sources, size of data...)
          * add possibility to update some ratings witout updating the items, and the items in one time afterward (see example load which call directly adv_ratings and adv_items)
  * Implementation / performance / algorithm
-     * all data are stored in memory: persistence backend is clearly needed.
-         * ratings could use ets/dets (what about using qlc?); mnesia could allow a partition of data
-         * adv_items could use ets or mnesia with copy ... this has to be delegated in the callback module because each module need its own data (not all have a matrix form)
+     * Bugs (to fix, not to do!)
+         * adv_slone_smdod has a bug in prediction (the last column/row) can never be predicted; see source code for comment)
+     * definitively lot of regression tests to write...
      * what about distributed collaborative filtering?
      * algorithm parallelism:
          * if prediction is a matrix base operation ... can be distributed (at least by group of lines)
          * building the matrix (init) can also be parallel
-     * adv_slone:predict_all read the whole matrix: should be able to read only lines for which source has there is at least one rating value! : recommend_n (for all rows, look at N columns), need a fast way to get few recommendations (for the N rows, score by columns), recommend_one ...
-     * lot of missing unit-test, especially inadv_slone (should validate algorithm, and manipulation like update)
-     * implementation of adviserl:update_rating is not optimal: it undo all itemss for one user, then redo with the new value; it could only change what is relative to the updated item.
+     * need more than recommend_all (recommend_one, recommend_n, recommend_best_effort(timeout), ...)
+     * implementation of adviserl:update_rating is not optimal: it undo all items for one user, then redo with the new value; it could only change what is relative to the updated item.
