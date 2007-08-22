@@ -119,6 +119,12 @@ init(_InitArgs) ->
     },
     {ok, State}.
 
+handle_call(info, _From, State) ->
+    {reply, [
+        {module, ?MODULE},
+        {size, ?DICT:size(State#state.ratings)}
+    ], State};
+
 handle_call({load_file, File, _Options}, _From, State) ->
     case file:consult(File) of
         {ok, [Ratings]} ->

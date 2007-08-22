@@ -62,6 +62,11 @@ init(_InitArgs) ->
     },
     {ok, State}.
 
+handle_call(info, _From, State) ->
+    {reply, [
+        {module, ?MODULE}
+    ], State};
+
 handle_call(
     {load_file, File, _Options},
     _From,

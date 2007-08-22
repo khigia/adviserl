@@ -35,6 +35,7 @@
 % ~~ Declaration: API
 
 -export([
+    info/0,
     start_app/0,
     stop_node/1,
     rate/3,
@@ -53,6 +54,24 @@
 
 
 % ~~ Implementation: API
+
+%% @spec info() -> Proplist
+%% @doc Return a list of information about adviserl application.
+%% Information about services are group in keys items, sources, predictions
+%% and ratings.
+%% Never fail even if application is not running.
+info() ->
+    [
+        {is_started, lists:keymember(
+            adviserl,
+            1,
+            application:which_applications()
+        )},
+        {items, adv_items:info()},
+        {sources, adv_sources:info()},
+        {ratings, adv_ratings:info()},
+        {predictions, adv_predictions:info()}
+    ].
 
 %%% @doc  Start localy the OTP application (run main application).
 %%% @spec () -> ok

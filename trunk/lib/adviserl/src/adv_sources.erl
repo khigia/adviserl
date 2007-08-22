@@ -25,6 +25,7 @@
 
 % ~~ Declaration: API
 -export([
+    info/0,
     load_file/2,
     save_file/2,
     insert_new/2,
@@ -42,48 +43,65 @@
 
 % ~~ Implementation: API
 
+info() ->
+    CommonInfo = [
+        {process_name, ?SOURCES_PNAME},
+        {module_spec, adv_config:get_sources_behaviour()}
+        %{whereis, erlang:whereis(?SOURCES_PNAME)}
+    ],
+    MaybeInfo = (catch gen_server:call(
+        ?SOURCES_PNAME,
+        info
+    )),
+    case MaybeInfo of
+        {'EXIT', _} ->
+            CommonInfo;
+        Info ->
+            CommonInfo ++ Info
+    end.
+
 load_file(File, Options) ->
     gen_server:call(
-        ?MODULE,
+        ?SOURCES_PNAME,
         {load_file, File, Options}
     ),
     ?INFO("file loaded", []).
 
 save_file(File, Options) ->
     gen_server:call(
-        ?MODULE,
+        ?SOURCES_PNAME,
         {save_file, File, Options}
     ),
     ?INFO("file saved", []).
 
 insert_new(Key, Data) ->
     gen_server:call(
-        ?MODULE,
+        ?SOURCES_PNAME,
         {insert_new, Key, Data}
     ).
 
 %% @spec id_from_key(Key::term()) -> ID::integer() | undefined
 id_from_key(Key) ->
     gen_server:call(
-        ?MODULE,
+        ?SOURCES_PNAME,
         {id_from_key, Key}
     ).
 
 object_from_key(Key) ->
     gen_server:call(
-        ?MODULE,
+        ?SOURCES_PNAME,
         {object_from_key, Key}
     ).
 
 key_from_id(ID) ->
     gen_server:call(
-        ?MODULE,
+        ?SOURCES_PNAME,
         {key_from_id, ID}
     ).
 
 object_from_id(ID) ->
     gen_server:call(
-        ?MODULE,
+        ?SOURCES_PNAME,
         {object_from_id, ID}
     ).
 
