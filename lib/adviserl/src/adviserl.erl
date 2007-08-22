@@ -44,6 +44,8 @@
     async_rate_id/3,
     rate/4,
     rate_id/4,
+    async_rate/4,
+    async_rate_id/4,
     recommend_all/1,
     recommend_all/2
 ]).
@@ -161,6 +163,15 @@ rate_id(SourceID, ItemID, Updater, Default) ->
         OldRatings
     ).
         
+async_rate(Source, Item, Updater, Default) ->
+    {ok, _IsSrcInserted, SourceID} = adv_sources:insert_new(Source, no_data),
+    {ok, _IsItmInserted, ItemID} = adv_items:insert_new(Item, no_data),
+    async_rate_id(SourceID, ItemID, Updater, Default).
+
+async_rate_id(SourceID, ItemID, Updater, Default) ->
+    adv_ratings:update_rating(SourceID, ItemID, Updater, Default).
+
+
 %% @spec recommend_all(IDOrKeyOrRatings) -> predictions() | {error,Reason}
 %% @doc  Retrieve prediction for each item, using default options.
 %% Call recommend_all/2 with default value for options (sorted and strict);
