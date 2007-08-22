@@ -115,7 +115,7 @@ restore() ->
                             ok;
                         _ ->
                             ?WARNING("Cannot reach backup file:~s", [File]),
-                            {error, not_a_file}
+                            ok
                     end;
                 Err = {error, _} ->
                     ?WARNING("Backup definition cannot be restored:~w", [Err]),
