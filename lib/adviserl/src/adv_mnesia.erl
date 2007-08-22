@@ -91,6 +91,7 @@ backup(File, Tables) ->
     ]),
     R = mnesia:backup_checkpoint(Name, File),
     ok = mnesia:deactivate_checkpoint(Name),
+    ?DEBUG("Backup mnesia DB writen in ~s", [File]),
     R.
 
 restore() ->
