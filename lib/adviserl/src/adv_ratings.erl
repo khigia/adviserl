@@ -31,6 +31,7 @@
 
 % ~~ Declaration: API
 -export([
+    info/0,
     % ratings interface
     load_file/2,
     save_file/2,
@@ -55,6 +56,23 @@
 
 
 % ~~ Implementation: API
+
+info() ->
+    CommonInfo = [
+        {process_name, ?RATINGS_PNAME},
+        {module_spec, adv_config:get_ratings_behaviour()}
+        %{whereis, erlang:whereis(?RATINGS_PNAME)}
+    ],
+    MaybeInfo = (catch gen_server:call(
+        ?RATINGS_PNAME,
+        info
+    )),
+    case MaybeInfo of
+        {'EXIT', _} ->
+            CommonInfo;
+        Info ->
+            CommonInfo ++ Info
+    end.
 
 load_file(File, Options) ->
     R = gen_server:call(

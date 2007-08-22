@@ -25,6 +25,7 @@
 
 % ~~ Declaration: API
 -export([
+    info/0,
     load_file/2,
     save_file/2,
     init/0,
@@ -42,6 +43,23 @@
 
 
 % ~~ Implementation: API
+
+info() ->
+    CommonInfo = [
+        {process_name, ?PREDICTIONS_PNAME},
+        {module_spec, adv_config:get_predictions_behaviour()}
+        %{whereis, erlang:whereis(?PREDICTIONS_PNAME)}
+    ],
+    MaybeInfo = (catch gen_server:call(
+        ?PREDICTIONS_PNAME,
+        info
+    )),
+    case MaybeInfo of
+        {'EXIT', _} ->
+            CommonInfo;
+        Info ->
+            CommonInfo ++ Info
+    end.
 
 load_file(File, Options) ->
     gen_server:call(

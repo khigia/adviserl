@@ -59,6 +59,15 @@ init([TableName]) ->
         next = 1
     }}.
 
+handle_call(info, _From, State) ->
+    {reply, [
+        {module, ?MODULE},
+        {table_name, State#st.tid},
+        {table_size, ets:info(State#st.tid, size)},
+        {table_memory, ets:info(State#st.tid, memory)},
+        {next_id, State#st.next}
+    ], State};
+
 handle_call({load_file, File, _Options}, _From, State) ->
     case dets:open_file(list_to_atom(File), [{file, File}]) of
         {ok, Dets} ->

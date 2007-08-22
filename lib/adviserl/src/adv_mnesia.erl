@@ -58,7 +58,7 @@ init() ->
             ok = application:set_env(mnesia, dir, Dir),
             mnesia:create_schema([node()]), %TODO may fail, don't care (already exists)?
             R = application:start(mnesia),
-            restore(),
+            ok = restore(),
             R
     end.
 
@@ -111,7 +111,8 @@ restore() ->
                             ok = mnesia:wait_for_tables(Tables, 5000),
                             St = mnesia:restore(File, [{recreate_tables, Tables}]),
                             ?INFO("Backup '~s' restore status:~w", [File, St]),
-                            St;
+                            {atomic, _} = St,
+                            ok;
                         _ ->
                             ?WARNING("Cannot reach backup file:~s", [File]),
                             {error, not_a_file}

@@ -123,6 +123,14 @@ init([TableName]) ->
     },
     {ok, State}.
 
+handle_call(info, _From, State) ->
+    {reply, [
+        {module, ?MODULE},
+        {table_name, State#st.table},
+        {table_version, mnesia:table_info(State#st.table, version)},
+        {table_size, mnesia:table_info(State#st.table, size)}
+    ], State};
+
 handle_call({load_file, _File, _Options}, _From, State) ->
     {reply, {error, "no implementation: use mnesia backup"}, State};
 
