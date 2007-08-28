@@ -18,6 +18,11 @@
 # Description: ad-hoc (Linux) Makefile for standard Erlang/OTP application
 # Author: Ludovic Coquelle <lcoquelle@gmail.com>
 
+#TODO test and vendor need to be included in this makefile
+# reason: damn slow to run 3 erlang VM just to see if something has to be rebuilt!
+# see: http://miller.emu.id.au/pmiller/books/rmch/
+#TODO some files need to be make-configured (e.g. app.src to build app, env_dev, inets.conf...)
+
 # Configuration
 
 CMD_ERL      = erl
