@@ -35,15 +35,17 @@
 % ~~ Declaration: API
 
 -export([
+    % application management
     info/0,
     start_app/0,
     stop_node/1,
+    % adviserl interface
     rate/3,
     rate_id/3,
-    async_rate/3,
-    async_rate_id/3,
     rate/4,
     rate_id/4,
+    async_rate/3,
+    async_rate_id/3,
     async_rate/4,
     async_rate_id/4,
     recommend_all/1,
@@ -60,9 +62,12 @@
 
 %% @spec info() -> Proplist
 %% @doc Return a list of information about adviserl application.
-%% Information about services are group in keys items, sources, predictions
-%% and ratings.
-%% Never fail even if application is not running.
+%%
+%% This function doesn't fail even if application is not started.
+%%
+%% The key `is_started' give aviserl application status.
+%% Information about services are group into keys `items',
+%% `sources', `predictions' and `ratings'.
 info() ->
     [
         {is_started, lists:keymember(
@@ -185,7 +190,7 @@ recommend_all(IDOrKeyOrRatings) ->
 %%     Option = {no_sorted, bool()}
 %%            | {no_strict, bool()}
 %%            | {no_remove_known, bool()}
-%%            | {output, id|key}
+%%            | {no_key_lookup, bool()}
 %% @doc  Retrieve prediction for each itemID.
 %%
 %% Interpretation of Source depends on its type:
