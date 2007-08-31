@@ -29,18 +29,18 @@
 
 % HTTP/ESI helpers
 
-%% @spec header(ok|bad_request|not_found|not_acceptable, [Field]) -> string()
+%% @spec header(Status::atom(), [Field]) -> string()
+%%     Status = ok|bad_request|not_found
 %%     Field = {Name::string(), Value::string()}
 %% @doc Generate a complete HTTP header.
-%% Inets generate the status line from the 'status' header field.
+%% @end
+% Inets generate the status line from the 'status' header field.
 header(ok, Fields) ->
     header([{"Status","200 OK"} | Fields]);
 header(bad_request, Fields) ->
     header([{"Status","400 Bad request"} | Fields]);
 header(not_found, Fields) ->
-    header([{"Status","404 Not found"} | Fields]);
-header(not_acceptable, Fields) ->
-    header([{"Status","406 Not acceptable"} | Fields]).
+    header([{"Status","404 Not found"} | Fields]).
 
 %% @spec header([{Name::string(),Value::string()}]) -> string()
 %% @doc Generate all HTTP header fields and append header end delimiter.
@@ -300,14 +300,16 @@ process_recommend_all(Source, Options) ->
     end,
     (catch adviserl:recommend_all(Source, AdvOptions2)).
 
-respond_rate_id(SessionID, Env, Query) ->
-    BodyPart = case Query of
-        {Result, SourceID, ItemID, Rating, Options} ->
-            mod_esi:deliver(SessionID, header(ok, [
-                {"Content-Type", "text/html"},
-                {"Date",         httpd_util:rfc1123_date()}
-            ])),
-            [
+respond_rate_id(SessionID, Env, {Result, SourceID, ItemID, Rating, Options}) ->
+    mod_esi:deliver(SessionID, header(ok, [
+        {"Content-Type", "text/html"},
+        {"Date",         httpd_util:rfc1123_date()}
+    ])),
+    mod_esi:deliver(SessionID, lists:flatten(
+        html([
+            head("rate_id result", []),
+            body([
+                h1("Rating request result"),
                 h2("Env"),
                 io_lib:format("Env:~p~n", [Env]),
                 h2("Query"),
@@ -316,21 +318,7 @@ respond_rate_id(SessionID, Env, Query) ->
                 io_lib:format("Rating: ~p<br/>~n", [Rating]),
                 io_lib:format("Options: ~p<br/>~n", [Options]),
                 h2("Result"),
-                io_lib:format("~p<br/>~n", [Result])
-            ];
-        undefined ->
-            mod_esi:deliver(SessionID, header(not_found, [
-                {"Content-Type", "text/html"},
-                {"Date",         httpd_util:rfc1123_date()}
-            ])),
-            "Empty or invalid request"
-    end,
-    mod_esi:deliver(SessionID, lists:flatten(
-        html([
-            head("rate_id result", []),
-            body([
-                h1("Rating request result"),
-                BodyPart,
+                io_lib:format("~p<br/>~n", [Result]),
                 h1("New rating request"),
                 form(
                     "/api/adv_inets:rate_id",

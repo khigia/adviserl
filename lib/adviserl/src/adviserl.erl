@@ -86,9 +86,17 @@ info() ->
 %%% @end
 start_app() ->
     % run the main application
-    ?DEBUG("Starting the main OTP application", []),
+    ?DEBUG("Starting adviserl application", []),
     IsOK = application:start(adviserl),
-    ?DEBUG("adviserl application status: ~p", [IsOK]).
+    ?DEBUG("adviserl application status: ~p", [IsOK]),
+    case (IsOK =:= ok) andalso adv_config:get_inets_start() of
+        true ->
+            IsInetsOK = application:start(inets),
+            ?DEBUG("inets application status: ~p", [IsInetsOK]);
+        _ ->
+            ok
+    end,
+    IsOK.
 
 %%% @doc  Stop the OTP application AND shutdown remote node AND local node!
 %%% @spec ([Node]) -> ok

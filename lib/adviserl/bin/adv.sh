@@ -88,9 +88,10 @@ case $1 in
         -boot start_sasl \
         -sname ${APP_START_NODE} \
         -pa ${APP_ROOT}/ebin \
-        -s ${APP_START_MOD} ${APP_START_FUN} ${APP_START_ARGS}
-        #-s toolbar start \
+        -s ${APP_START_MOD} ${APP_START_FUN} ${APP_START_ARGS} \
+        -s toolbar start \
         #-s appmon start \
+        #-s tv start \
     ;;
  
   stop)

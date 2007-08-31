@@ -24,6 +24,7 @@
 
 % ~~ Declaration: API
 -export([
+    get_inets_start/0,
     get_mnesia_config/0,
     get_sources_behaviour/0,
     get_items_behaviour/0,
@@ -40,6 +41,15 @@
 
 
 % ~~ Implementation: API
+
+%% @spec get_inets_start() -> bool()
+get_inets_start() ->
+    case application:get_env(adviserl, inets) of
+        {ok, R} ->
+            proplists:get_bool(start, R);
+        _ ->
+            false
+    end.
 
 %% @spec get_mnesia_config() -> PropertyList
 get_mnesia_config() ->

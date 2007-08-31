@@ -44,6 +44,9 @@
                 {tables, [adv_sources, adv_items, adv_ratings, adv_predictions]}
             ]}
         ]},
+        {inets, [
+            start
+        ]},
         {sources,     {adv_data_mnesia,    [adv_sources]}},
         {items,       {adv_data_mnesia,    [adv_items]}},
         {ratings,     {adv_ratings_mnesia, [adv_ratings]}},
