@@ -14,18 +14,13 @@
          * example of using MySQL and some reporting data (how to implement a realtime callback?)
          * example to use MySQL to implement a sources' service (an external user database)
  * API
-     * External
-         * is it a good idea to start mnesia as embeded application (using mnesia_sup)? goal is to be able to check the config, and decide where to start and stop it (currently, start is handle but stop is not possible)
-         * adv_api is not consistent with adviserl ... need to be updated ... or just removed (replaced by simple rpc?)
-         * consistant backup of the whole system is tricky problem (need services synchronization)
-         * need to support multiple predictors for the same set of data (multiple prediction callback module): this enable to have multiple prediction algorithms for the same set of data: this may require to have prediction plugins which are not gen_server but supervisor with one main prediction process and whatever else it need (or shall we only start_link processes inside a gen_server?) ...
-         * if ratings need to be kept in memory for fast access, maybe the related data do not need to ... a new rating plugin could kept ratings scores in memory and rating data in another disc-based table (this also make data optional ... shall we remove rating data completely from API!?) ...
-         * add some options to bin/adv-recommendall-source [-n api_node] [--sorted] [-n 5] 12 => print 2 numbers (itemID and score) by line
-         * python interface to talk with adviserl_api (http://www.lysator.liu.se/~tab/erlang/py_interface)
-         * HTTP interface (yaws/inets or see http://wiki.trapexit.org/index.php/A_fast_web_server_demonstrating_some_undocumented_Erlang_features)
-     * Internal
-         * adviserl:info() to get global info (system alive, number of items, sources, size of data...)
-         * add possibility to update some ratings witout updating the items, and the items in one time afterward (see example load which call directly adv_ratings and adv_items)
+     * is it a good idea to start mnesia as embeded application (using mnesia_sup)? goal is to be able to check the config, and decide where to start and stop it (currently, start is handle but stop is not possible)
+     * adv_api is not consistent with adviserl ... need to be updated ... or just removed (replaced by simple rpc? ... not usable from python bridge!)
+     * consistant backup of the whole system is tricky problem (need services synchronization)
+     * need to support multiple predictors for the same set of data (multiple prediction callback module): this enable to have multiple prediction algorithms for the same set of data: this may require to have prediction plugins which are not gen_server but supervisor with one main prediction process and whatever else it need (or shall we only start_link processes inside a gen_server?) ...
+     * if ratings need to be kept in memory for fast access, maybe the related data do not need to ... a new rating plugin could keep ratings scores in memory and rating data in another disc-based table (this also make data optional ... shall we remove rating data completely from API!?) ...
+     * add some options to bin/adv-recommendall-source [-n api_node] [--sorted] [-n 5] 12 => print 2 numbers (itemID and score) by line
+     * python interface to talk with adviserl_api (http://www.lysator.liu.se/~tab/erlang/py_interface)
  * Implementation / performance / algorithm
      * Bugs (to fix, not to do!)
          * adv_slone_smdod has a bug in prediction (the last column/row) can never be predicted; see source code for comment)
