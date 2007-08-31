@@ -1,4 +1,9 @@
 #summary Links about CF/recommender system projects, articles, sites
+
+Lab
+ * [http://www.grouplens.org/publications.html !GroupLens]
+ * [http://glaros.dtc.umn.edu/gkhome/publications/cf Karypis Lab]
+
 Personal pages
  * [http://jamesthornton.com/cf James Thornton]
  * [http://www.cis.upenn.edu/~ungar/CF Lyle Ungar]
@@ -19,7 +24,7 @@ References
    * Toward the Next Generation of Recommender Systems: A Survey of the  State-of-the-Art and Possible Extensions ([http://www.citeulike.org/user/lcoquelle/article/515044 citeulike])
    * Google News Personalization: scalable online collaborative filtering ([http://www.citeulike.org/user/lcoquelle/article/1288839 citeulike], [http://www2007.org/paper570.php download])
      * [http://glinden.blogspot.com/2007/05/google-news-personalization-paper.html Comments] about this article
- * [http://www.citeulike.org/user/lcoquelle/tag/recommender Collection] of references on citeUlike
+ * [http://www.citeulike.org/user/lcoquelle/tag/recommender Collection of references] on citeUlike
 
 Links
  * wikipedia
@@ -30,3 +35,5 @@ Links
  * !CiteULike
    * [http://www.citeulike.org/search/all?f=abstract&q=recommender recommender]
    * [http://www.citeulike.org/search/all?f=abstract&q=collaborative+filtering collaborative filtering]
+ * Scirus
+   * [http://www.scirus.com/srsapp/search?q=collaborative+filtering&ds=jnl&ds=nom&ds=web&g=s&t=all collaborative filtering]
