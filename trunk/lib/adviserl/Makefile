@@ -63,7 +63,7 @@ dev: devbuild test checks doc
 .PHONY : logs
 logs:
 	@echo "==== Extracting logs ===="
-	${CMD_ERL} -noshell ${ERLPATH} -boot start_sasl -eval "rb:start([{report_dir, \"./log/\"}]), rb:show()." -s init stop
+	${CMD_ERL} -noshell ${ERLPATH} -boot start_sasl -eval "(rb:start([{report_dir, \"./log/\"}]) =:= ok) andalso rb:show()." -s init stop
 	@echo
 
 .PHONY : devbuild

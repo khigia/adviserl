@@ -3,7 +3,7 @@ API_NODE=adv@localhost
 
 help_and_exit() {
     echo "Terminating... $1" >&2
-    echo "Usage: $0 [-n api_erlang_node] [-s command_erlang_node] SourceID ItemID RatingInteger"
+    echo "Usage: $0 [-n api_erlang_node] [-s command_erlang_node] SourceKey ItemKey RatingInteger"
     exit 1
 }
 

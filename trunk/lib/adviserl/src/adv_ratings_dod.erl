@@ -25,7 +25,7 @@
 -module(adv_ratings_dod).
 
 
-% ~~ Declaration: OTP relative
+% ~~ Declaration: OTP
 -behaviour(gen_server).
 -export([
     init/1,         % (InitArgs) -> Result
