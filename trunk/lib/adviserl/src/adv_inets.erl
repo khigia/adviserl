@@ -345,19 +345,17 @@ respond_recommend_all(SessionID, Env, Source, Options) ->
     case process_recommend_all(Source, Options) of
         Predictions when is_list(Predictions) ->
             mod_esi:deliver(SessionID, header(ok, [
-                {"Content-Type", "text/html"},
+                {"Content-Type", "text/plain"},
                 {"Date",         httpd_util:rfc1123_date()}
             ])),
-            mod_esi:deliver(SessionID, lists:flatten(
-                html([
-                    head("adviserl:recommend_all result", []),
-                    body(lists:map(
-                        fun({Item, Score}) -> io_lib:format("~w ~w~n", [Item, Score]) end,
-                        Predictions
-                    ))
-                ])
-            ));
+            mod_esi:deliver(SessionID, prediction_to_string(Predictions));
         _ ->
             % adviserl error, or adviserl not reached
             mod_esi:deliver(SessionID, header(not_found, []))
     end.
+
+prediction_to_string(Predictions) ->
+    lists:flatmap(
+        fun({Item, Score}) -> io_lib:format("~w ~w~n", [Item, Score]) end,
+        Predictions
+    ).

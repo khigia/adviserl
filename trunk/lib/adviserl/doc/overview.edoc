@@ -7,18 +7,26 @@
 == Introduction ==
 
 Adviserl is a recommender system.
-It has been design originally to implement the Slope One algorithm but should support different algorithms.
+It has been designed at the beginning to implement the Slope One algorithm but should support different algorithms.
 Aim of the project is to provide necessary services to allow implementation of collaborative-filtering recommendations but also content-based recommendations.
 
 === What it does ===
 
-Adviserl application provides a single locale interface {@link adviserl}, as well as the same interface {@link adv_api} implementing a `gen_server' module.
+Adviserl application provides a single interface {@link adviserl} (the same interface is accessible through a gen_server {@link adv_api} or HTTP server {@link adv_inets}).
 This interface allow to rate item ({@link adviserl:rate/3}) and to get recommendation ({@link adviserl:recommend_all/2}).
 
-This rely on few public services:
+Few naming conventions:
 <ul>
-    <li>{@link adv_sources} keep a list of all possible rating sources (e.g. users): a source structure is identified either by an ID (integer) used internally or by a provided key (any term), and this source structure also contains an opaque data term (e.g. user login timestamp, user age etc).</li>
-    <li>{@link adv_items} contains the same kind of data (ID, key, opaque data) as the previous service but for items.</li>
+    <li>a `source' designed the origin of a rating, usually a user;</li>
+    <li>a `item' can be anything rated by a source;</li>
+    <li>a `rating' is an integer `score' and any associated data (e.g. a timestamp);</li>
+    <li>sources and items can be identified by `ID' (a positive integer used internally) or a `key' (any external representation).</li>
+</ul>
+
+Adviserl provides few public services:
+<ul>
+    <li>{@link adv_sources} keep a list of all possible rating sources (e.g. users): a source structure contains its ID, its key and an opaque data term (e.g. user login timestamp, user age etc).</li>
+    <li>{@link adv_items} is the same kind of service (ID, key, opaque data) as the previous service but for items.</li>
     <li>{@link adv_ratings} store ratings information: one source (user) can rate any item by providing a integer rating value and any attached data (eg. timestamp...).</li>
     <li>{@link adv_predictions} store predictions data: when a new rating is available, or a rating is updated, predictions is updated as well to maintain some statistics or covisitation data (e.g. a slope-one is provided).</li>
 </ul>
@@ -33,7 +41,7 @@ The public interface is defined by the {@link adviserl} exported functions.
 
 Getting started:
 ```
-% start application: by default use Slope-One structure
+% start application: by default use Slope-One structure and mnesia backend
 application:start(sasl),
 application:start(adviserl),
 
