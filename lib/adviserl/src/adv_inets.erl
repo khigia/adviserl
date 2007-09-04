@@ -344,11 +344,13 @@ respond_rate_id(SessionID, Env, {Result, SourceID, ItemID, Rating, Options}) ->
 respond_recommend_all(SessionID, Env, Source, Options) ->
     case process_recommend_all(Source, Options) of
         Predictions when is_list(Predictions) ->
+            Respond = prediction_to_string(Predictions),
             mod_esi:deliver(SessionID, header(ok, [
                 {"Content-Type", "text/plain"},
+                {"Content-Length", integer_to_list(length(Respond))},
                 {"Date",         httpd_util:rfc1123_date()}
             ])),
-            mod_esi:deliver(SessionID, prediction_to_string(Predictions));
+            mod_esi:deliver(SessionID, Respond);
         _ ->
             % adviserl error, or adviserl not reached
             mod_esi:deliver(SessionID, header(not_found, []))
