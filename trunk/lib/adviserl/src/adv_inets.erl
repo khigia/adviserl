@@ -45,14 +45,14 @@ header(not_found, Fields) ->
 %% @spec header([{Name::string(),Value::string()}]) -> string()
 %% @doc Generate all HTTP header fields and append header end delimiter.
 header(Fields) ->
-    lists:flatten([header_fields(Fields, []), "\r\n\r\n"]).
+    lists:flatten([header_fields(Fields, []), "\r\n"]).
 
 %% @spec header_fields([{Name,Value}], Acc) -> DeepList
 %% @doc Generate HTTP header fields
 header_fields([], Acc) ->
     Acc;
 header_fields([{FieldName,FieldValue} | Fields], Acc) ->
-    header_fields(Fields, [[FieldName, ":", FieldValue, "\n"] | Acc]).
+    header_fields(Fields, [[FieldName, ":", FieldValue, "\r\n"] | Acc]).
 
 %% @spec query_terms(HTTPQuery, Parameters, Options) -> Result | {error,Reason}
 %%     Parameters = [string()]
@@ -301,11 +301,7 @@ process_recommend_all(Source, Options) ->
     (catch adviserl:recommend_all(Source, AdvOptions2)).
 
 respond_rate_id(SessionID, Env, {Result, SourceID, ItemID, Rating, Options}) ->
-    mod_esi:deliver(SessionID, header(ok, [
-        {"Content-Type", "text/html"},
-        {"Date",         httpd_util:rfc1123_date()}
-    ])),
-    mod_esi:deliver(SessionID, lists:flatten(
+    Respond = lists:flatten(
         html([
             head("rate_id result", []),
             body([
@@ -339,18 +335,28 @@ respond_rate_id(SessionID, Env, {Result, SourceID, ItemID, Rating, Options}) ->
                 )
             ])
          ])
-     )).
+     ),
+    mod_esi:deliver(SessionID, lists:flatten(
+        header(ok, [
+            {"Content-Type", "text/html"},
+            {"Content-Length", integer_to_list(length(Respond))},
+            {"Date",         httpd_util:rfc1123_date()}
+        ]),
+        Respond
+    )).
 
 respond_recommend_all(SessionID, Env, Source, Options) ->
     case process_recommend_all(Source, Options) of
         Predictions when is_list(Predictions) ->
             Respond = prediction_to_string(Predictions),
-            mod_esi:deliver(SessionID, header(ok, [
-                {"Content-Type", "text/plain"},
-                {"Content-Length", integer_to_list(length(Respond))},
-                {"Date",         httpd_util:rfc1123_date()}
-            ])),
-            mod_esi:deliver(SessionID, Respond);
+            mod_esi:deliver(SessionID, lists:flatten(
+                header(ok, [
+                    {"Content-Type", "text/plain"},
+                    {"Content-Length", integer_to_list(length(Respond))},
+                    {"Date",         httpd_util:rfc1123_date()}
+                ]),
+                Respond
+            ));
         _ ->
             % adviserl error, or adviserl not reached
             mod_esi:deliver(SessionID, header(not_found, []))
