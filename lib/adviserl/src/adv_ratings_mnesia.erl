@@ -41,6 +41,7 @@
 -export([
     from_list/1,
     to_list/1,
+    is_empty/1,
     fold_ratings/3
 ]).
 -export([
@@ -80,6 +81,13 @@ to_list(Ratings) ->
         fun({Key, {RatingValue, _RatingData}}) -> {Key, RatingValue} end,
         Ratings
     ).
+
+%% @spec is_empty(ratings()) -> bool()
+%% @doc Return true if Ratings is empty.
+is_empty([]) ->
+    true;
+is_empty(_Ratings) ->
+    false.
 
 %%% @doc  Fold a ratings structure passing rating by rating to the function.
 %%% @spec (((itemID(),rating(),Acc)->Acc), Acc, ratings()) -> Acc
