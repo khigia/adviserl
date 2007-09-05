@@ -246,9 +246,12 @@ rate_id(SessionID, Env, Input) ->
     end.
 
 %% @doc recommend_all API accepting GET or POST methods.
+%% Behave like adviserl:recommend_all/1 but does not fail on unknow key or ID
+%% and rather fallback on using popular recommendation (recommendation for
+%% empty rating).
 %% The URL query must define:
 %% <ul>
-%%     <li>`s' as the SourceID</li>
+%%     <li>`s' as the Source (ID, key or ratings)</li>
 %% </ul>
 %% Optionaly the query may define:
 %% <ul>
@@ -263,7 +266,8 @@ rate_id(SessionID, Env, Input) ->
 %%     <li>200 (ok) otherwise, with plain text body: each line specify
 %%         one item and score (space separated).</li>
 %% </ul>
-%% The HTTP body is empty for POST request and contains HTML for GET one.
+%% The HTTP body is empty for POST request and contains plain text for GET one.
+%% Format is one line per recommendation: `itemID Space Score'.
 recommend_all(SessionID, Env, Input) ->
     Query = httpd:parse_query(Input),
     case query_terms(Query, ["s"], ["no_key_lookup", "no_remove_known"]) of
@@ -298,7 +302,13 @@ process_recommend_all(Source, Options) ->
         _ ->
             AdvOptions1
     end,
-    (catch adviserl:recommend_all(Source, AdvOptions2)).
+    R = (catch adviserl:recommend_all(Source, AdvOptions2)),
+    case R of
+        {error, _Reason} ->
+            (catch adviserl:recommend_all([], AdvOptions2));
+        _ ->
+            R
+    end.
 
 respond_rate_id(SessionID, Env, {Result, SourceID, ItemID, Rating, Options}) ->
     Respond = lists:flatten(
@@ -345,7 +355,7 @@ respond_rate_id(SessionID, Env, {Result, SourceID, ItemID, Rating, Options}) ->
         Respond
     )).
 
-respond_recommend_all(SessionID, Env, Source, Options) ->
+respond_recommend_all(SessionID, _Env, Source, Options) ->
     case process_recommend_all(Source, Options) of
         Predictions when is_list(Predictions) ->
             Respond = prediction_to_string(Predictions),
@@ -364,6 +374,6 @@ respond_recommend_all(SessionID, Env, Source, Options) ->
 
 prediction_to_string(Predictions) ->
     lists:flatmap(
-        fun({Item, Score}) -> io_lib:format("~w ~w~n", [Item, Score]) end,
+        fun({Item, Score}) -> io_lib:format("~w ~f~n", [Item, Score]) end,
         Predictions
     ).
