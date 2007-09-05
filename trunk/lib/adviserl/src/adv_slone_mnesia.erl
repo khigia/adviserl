@@ -316,9 +316,12 @@ update_rating(Table, SourceID, ItemID, _NewRating, OldRatings) ->
 %%% @private
 predict_all(Table, SourceRatings, Options) ->
     % hopefully this respect the weighted slope one algorithm
-    %fprof:trace(start),
-    Result = predict_all_impl2(Table, SourceRatings),
-    %fprof:trace(stop),
+    Result = case adv_ratings:is_empty(SourceRatings) of
+        true ->
+            predict_all_default(Table);
+        _ ->
+            predict_all_impl2(Table, SourceRatings)
+    end,
     format_prediction_result(Result, SourceRatings, Options).
 
 
@@ -409,6 +412,36 @@ predict_all_impl2(Table, SourceRatings) ->
         L
     ).
 
+-compile(export_all).
+
+predict_all_default(Table) ->
+    {atomic, Result} = mnesia:transaction(fun() ->
+        mnesia:foldl(
+            fun(Record, Acc0) ->
+                Row  = Record#slnscore.row_item,
+                Col  = Record#slnscore.col_item,
+                Freq = Record#slnscore.freq,
+                Diff = Record#slnscore.diff,
+                Acc1 = dict:update(
+                    Row,
+                    fun({CF, CD}) -> {CF + Freq, CD + (Freq * Diff)} end,
+                    {Freq, Freq * Diff},
+                    Acc0
+                ),
+                Acc2 = dict:update(
+                    Col,
+                    fun({CF, CD}) -> {CF + Freq, CD + (Freq * -1 * Diff)} end,
+                    {Freq, Freq * -1 * Diff},
+                    Acc1
+                ),
+                Acc2
+            end,
+            dict:new(),
+            Table
+        )
+    end),
+    dict:to_list(Result).
+
 %%% @doc  Use options to format the predictions results.
 %%% @spec ([{itemID(), {Freq::integer(), Dev::integer()}}], [rating()], [Option]) -> predictions()
 %%% @see  adviserl:recommend_all/2
@@ -454,7 +487,12 @@ format_prediction_result(Result0, Ratings, Options) ->
     end,
     %?DEBUG("prediction 2: ~w~n", [Result2]),
     % compute float value as prediction coefficients
-    Coef = float(SourceRatingNumber),
+    Coef = case SourceRatingNumber > 0 of
+        true ->
+            float(SourceRatingNumber);
+        _ ->
+            1.0
+    end,
     Result3 = lists:map(
         fun({ItemID, {Freq,Dev}}) ->
             {ItemID, float(Freq * Dev) / Coef}

@@ -66,6 +66,7 @@
     % convenience functions
     from_list/1,
     to_list/1,
+    is_empty/1,
     fold_ratings/3
 ]).
 -export([
@@ -236,13 +237,18 @@ to_list(Ratings) ->
     RatingMod = adv_config:get_ratings_module(),
     RatingMod:to_list(Ratings).
 
+%% @spec is_empty(ratings()) -> bool()
+%% @doc Return true if Ratings is empty.
+is_empty(Ratings) ->
+    RatingMod = adv_config:get_ratings_module(),
+    RatingMod:is_empty(Ratings).
+
 %% @spec fold_ratings(((itemID(),rating(),Acc)->Acc), Acc, ratings()) -> Acc
 %%
 %% @doc  Fold a ratings structure passing rating by rating to the function.
 fold_ratings(Fun, Accumulator, SourceRatings) ->
     RatingMod = adv_config:get_ratings_module(),
     RatingMod:fold_ratings(Fun, Accumulator, SourceRatings).
-
 
 %% @spec () -> ok
 %%
