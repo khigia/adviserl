@@ -412,8 +412,6 @@ predict_all_impl2(Table, SourceRatings) ->
         L
     ).
 
--compile(export_all).
-
 predict_all_default(Table) ->
     {atomic, Result} = mnesia:transaction(fun() ->
         mnesia:foldl(
