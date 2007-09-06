@@ -270,7 +270,8 @@ locate_node(MaybeLocalNode) ->
         pong ->
             {ok, MaybeLocalNode};
         _ ->
-            LNodeStr = atom_to_list(MaybeLocalNode) ++ "@localhost",
+            {ok, LocalHost} = inet:gethostname(),
+            LNodeStr = atom_to_list(MaybeLocalNode) ++ "@" ++ LocalHost,
             LNodeAtom = list_to_atom(LNodeStr),
             case net_adm:ping(LNodeAtom) of
                 pong ->
