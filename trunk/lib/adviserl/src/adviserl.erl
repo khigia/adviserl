@@ -71,12 +71,15 @@
 %% Information about services are group into keys `items',
 %% `sources', `predictions' and `ratings'.
 info() ->
+    % following catch is when application_controller is down!
+    IsStarted = case (catch application:which_applications()) of
+        Apps when is_list(Apps) ->
+            lists:keymember(adviserl, 1, Apps);
+        _ ->
+            false
+    end,
     [
-        {is_started, lists:keymember(
-            adviserl,
-            1,
-            application:which_applications()
-        )},
+        {is_started, IsStarted},
         {items, adv_items:info()},
         {sources, adv_sources:info()},
         {ratings, adv_ratings:info()},
