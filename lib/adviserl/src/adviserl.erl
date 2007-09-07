@@ -55,6 +55,8 @@
 
 % ~~ Declaration: Internal
 
+-include_lib("kernel/include/inet.hrl").
+
 -include("include/adviserl.hrl").
 
 
@@ -91,8 +93,8 @@ start_app() ->
     ?DEBUG("adviserl application status: ~p", [IsOK]),
     case (IsOK =:= ok) andalso adv_config:get_inets_start() of
         true ->
-            IsInetsOK = application:start(inets),
-            ?DEBUG("inets application status: ~p", [IsInetsOK]);
+            _IsInetsOK = application:start(inets),
+            ?DEBUG("inets application status: ~p", [_IsInetsOK]);
         _ ->
             ok
     end,
@@ -270,7 +272,8 @@ locate_node(MaybeLocalNode) ->
         pong ->
             {ok, MaybeLocalNode};
         _ ->
-            {ok, LocalHost} = inet:gethostname(),
+            {ok, LocalHostName} = inet:gethostname(),
+            {ok, #hostent{h_name=LocalHost}} = inet:gethostbyname(LocalHostName),
             LNodeStr = atom_to_list(MaybeLocalNode) ++ "@" ++ LocalHost,
             LNodeAtom = list_to_atom(LNodeStr),
             case net_adm:ping(LNodeAtom) of
