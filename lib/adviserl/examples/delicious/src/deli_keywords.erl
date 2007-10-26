@@ -105,13 +105,16 @@ loop() ->
             io:format("Bye~n", []),
             erlang:halt();
         _ ->
+            io:format("step 1~n", []),
             KeywordIDs = lists:map(fun(K) -> adv_items:id_from_key(K) end, Keywords),
+            io:format("step 2~n", []),
             IDs = lists:filter(fun(undefined) -> false ; (_) -> true end, KeywordIDs),
+            io:format("step 3~n", []),
             Ratings = lists:map(fun(ID) -> {ID, 1} end, IDs),
-            Rec0 = adviserl:recommend_all(Ratings),
-            Rec1 = lists:map(fun({ID,_}) -> {ok,K} = adv_items:key_from_id(ID), K end, Rec0),
+            io:format("step 4~n", []),
+            Rec = adviserl:recommend_all(Ratings),
             N = 10,
-            io:format("Top ~w recommendations: ~p~n", [N, lists:sublist(Rec1,N)]),
+            io:format("Top ~w recommendations: ~p~n", [N, lists:sublist(Rec,N)]),
             loop()
     end.
 

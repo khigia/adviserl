@@ -3,12 +3,17 @@ CMD_ERL      = erl
 ERLPATH      = -pa ebin
 BUILDOPT_DEV = debug_info, {d,'EUNIT'}, {d,'LOG_DEBUG'}
 
-.PHONY : all
-all: dev
+.PHONY : prodbuild
+prodbuild : BUILDOPT = {d,'LOG_DEBUG'}
+prodbuild : build
 
-.PHONY : dev
-dev:
-	${CMD_ERL} -noshell ${ERLPATH} -eval "make:all([${BUILDOPT_DEV}])" -s erlang halt
+.PHONY : devbuild
+devbuild : BUILDOPT = debug_info, {d,'EUNIT'}, {d,'LOG_DEBUG'}
+devbuild : build
+
+.PHONY : build
+build:
+	${CMD_ERL} -noshell ${ERLPATH} -eval "make:all([${BUILDOPT}])" -s erlang halt
 
 .PHONY : clean
 clean:
