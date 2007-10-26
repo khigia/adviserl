@@ -90,7 +90,7 @@ posts_all(User, Password) ->
 http_header_basic_authorization(User, Password) ->
     {
         "Authorization",
-        "Basic " ++ http_base_64:encode(User ++ ":" ++ Password)
+        "Basic " ++ base64:encode_to_string(User ++ ":" ++ Password)
     }.
 
 parse_api_update(Body) ->
